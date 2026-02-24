@@ -88,6 +88,7 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
 
 Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `main` mediante Pull Requests o Merge Requests.
 
+
 ---
 
 ## Docker
