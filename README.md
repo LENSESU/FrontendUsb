@@ -38,6 +38,17 @@ npm start
 | `npm start`     | Servidor de producción   |
 | `npm run lint`  | Ejecutar ESLint          |
 
+## Dependencias principales
+
+Este proyecto usa las siguientes dependencias clave:
+
+- **next**: framework principal para el frontend.
+- **react / react-dom**: librería de UI y renderizado.
+- **tailwindcss**: librería de estilos utilitarios.
+- **eslint** y **eslint-config-next**: reglas de linting para mantener un código consistente.
+- **typescript**: tipado estático para el proyecto.
+- **husky**: para ejecutar hooks de Git (por ejemplo, `pre-commit` y `commit-msg`).
+
 ---
 
 ## Trabajo con el repositorio
@@ -64,7 +75,7 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
 
    ```bash
    git add .
-   git commit -m "Descripción del cambio"
+   git commit -m "[ADD]Descripción del cambio"
    ```
 
 3. **Subir tu rama al remoto** (para que otros la vean o para abrir un Pull Request):
@@ -88,6 +99,37 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
 
 Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `main` mediante Pull Requests o Merge Requests.
 
+## Convención de mensajes de commit
+
+Los mensajes de commit **deben** seguir el siguiente formato:
+
+```bash
+git commit -m "[TIPO]Descripción del cambio"
+```
+
+Donde `TIPO` puede ser uno de:
+
+- `[ADD]`   → cuando agregas nuevo código o funcionalidad.
+- `[UPDATE]` → cuando actualizas o mejoras algo existente.
+- `[DELETE]` → cuando eliminas código, archivos o funcionalidades.
+- `[FIX]`   → cuando corriges un bug o comportamiento incorrecto.
+- `[EDIT]`  → cuando refactorizas, reorganizas o haces cambios internos sin cambiar la funcionalidad.
+
+### Ejemplos correctos
+
+- `git commit -m "[ADD]Crea página de login"`
+- `git commit -m "[UPDATE]Actualiza estilos del header"`
+- `git commit -m "[DELETE]Elimina componente no usado"`
+- `git commit -m "[FIX]Corrige validación del formulario de registro"`
+- `git commit -m "[EDIT]Refactoriza estructura de carpetas"`
+
+### Ejemplos incorrectos (serán rechazados por el hook)
+
+- `git commit -m "feat: agrega login"`  ← falta el formato `[TIPO]texto`
+- `git commit -m "[ADD]"`               ← falta descripción luego del tipo
+- `git commit -m "ADD agrega login"`    ← falta corchetes `[ADD]`
+
+Si el mensaje no respeta este formato, el hook `commit-msg` bloqueará el commit.
 
 ---
 
