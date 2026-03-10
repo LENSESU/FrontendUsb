@@ -55,7 +55,7 @@ export default function LoginPage() {
               </div>
 
               <h1 className="text-center text-[32px] font-bold leading-tight text-[#212121]">
-                Ingreso Admin
+                Ingreso Tecnico
               </h1>
             </div>
 
