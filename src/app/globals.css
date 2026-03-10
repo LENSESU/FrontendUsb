@@ -1,3 +1,69 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Verify Code Page ── */
+
+.verify-page {
+  @apply min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4;
+}
+
+.verify-card {
+  @apply w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden;
+}
+
+.verify-card__accent {
+  @apply h-1.5 bg-orange-500;
+}
+
+.verify-card__body {
+  @apply p-8;
+}
+
+.verify-back-btn {
+  @apply flex items-center gap-1 text-orange-500 hover:text-orange-600
+         text-sm font-medium mb-6 transition-colors;
+}
+
+.verify-title {
+  @apply text-2xl font-bold text-gray-900 mb-2 uppercase;
+}
+
+.verify-description {
+  @apply text-sm text-gray-500 mb-8;
+}
+
+.verify-code-wrapper {
+  @apply mb-8;
+}
+
+.verify-submit-btn {
+  @apply w-full py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300
+         disabled:cursor-not-allowed text-white font-semibold rounded-full
+         transition-colors uppercase tracking-wide;
+}
+
+.verify-resend-wrapper {
+  @apply text-center mt-4;
+}
+
+.verify-resend-btn {
+  @apply text-orange-500 hover:text-orange-600 text-sm font-semibold
+         uppercase tracking-wide transition-colors;
+}
+
+.verify-footer {
+  @apply mt-8 text-xs text-gray-400 uppercase tracking-widest;
+}
+
+/* ── Code Input Component ── */
+
+.code-input-group {
+  @apply flex gap-3;
+}
+
+.code-input-digit {
+  @apply w-12 h-12 text-center text-xl font-semibold border-2 border-gray-300
+         rounded-lg focus:border-orange-500 focus:outline-none focus:ring-1
+         focus:ring-orange-500 transition-colors;
+}
