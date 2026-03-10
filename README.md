@@ -10,9 +10,18 @@ Frontend del Proyecto USB desarrollado con **Next.js**, TypeScript y Tailwind CS
 ## Instalación
 
 ```bash
-npm install 
+npm install
 ```
 
+## Variables de entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+> En producción reemplaza con la URL real del backend desplegado en Render.
 
 ## Desarrollo
 
@@ -21,6 +30,8 @@ npm run dev
 ```
 
 Abre [http://localhost:3000](http://localhost:3000) en el navegador.
+
+El backend debe estar corriendo (local o Docker) para que las llamadas a la API funcionen.
 
 ## Build y producción
 
@@ -31,8 +42,8 @@ npm start
 
 ## Scripts
 
-| Comando   | Descripción              |
-| --------- | ------------------------ |
+| Comando         | Descripción              |
+| --------------- | ------------------------ |
 | `npm run dev`   | Servidor de desarrollo   |
 | `npm run build` | Build de producción      |
 | `npm start`     | Servidor de producción   |
@@ -40,14 +51,12 @@ npm start
 
 ## Dependencias principales
 
-Este proyecto usa las siguientes dependencias clave:
-
 - **next**: framework principal para el frontend.
 - **react / react-dom**: librería de UI y renderizado.
 - **tailwindcss**: librería de estilos utilitarios.
 - **eslint** y **eslint-config-next**: reglas de linting para mantener un código consistente.
 - **typescript**: tipado estático para el proyecto.
-- **husky**: para ejecutar hooks de Git (por ejemplo, `pre-commit` y `commit-msg`).
+- **husky**: para ejecutar hooks de Git (`pre-commit` y `commit-msg`).
 
 ---
 
@@ -56,39 +65,38 @@ Este proyecto usa las siguientes dependencias clave:
 ### Clonar el repositorio
 
 ```bash
-git clone https://github.com/Chologalactico/FrontendUsb.git
-cd FRONTEND
+git clone https://github.com/LENSESU/FrontendUsb.git
+cd FrontendUsb
 ```
-
 
 ### Crear y usar una rama nueva
 
-Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
-
-1. **Crear una rama nueva** (por ejemplo `feature/mi-funcionalidad` o `fix/correccion`):
+1. **Crear una rama nueva**:
 
    ```bash
-   git checkout -b nombre-de-tu-rama
+   git checkout -b feature/mi-funcionalidad
    ```
 
-2. **Trabajar en la rama**: haz commits normalmente.
+2. **Hacer commits** — siempre desde la **terminal**, no desde la UI de VSCode:
 
    ```bash
-   git add .
+   git add src/app/mi-archivo.tsx
    git commit -m "[ADD]Descripción del cambio"
    ```
 
-3. **Subir tu rama al remoto** (para que otros la vean o para abrir un Pull Request):
+   > ⚠️ El hook `commit-msg` rechaza commits hechos desde la UI de VSCode porque no respetan el formato. Usa siempre la terminal.
+
+3. **Subir la rama al remoto**:
 
    ```bash
-   git push -u origin nombre-de-tu-rama
+   git push -u origin feature/mi-funcionalidad
    ```
 
 4. **Cambiar entre ramas**:
 
    ```bash
-   git checkout main        # volver a main
-   git checkout nombre-de-tu-rama   # volver a tu rama
+   git checkout main
+   git checkout feature/mi-funcionalidad
    ```
 
 5. **Listar ramas**:
@@ -97,39 +105,52 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
    git branch -a
    ```
 
-Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `main` mediante Pull Requests o Merge Requests.
+Se recomienda integrar cambios a `main` mediante Pull Requests.
+
+---
 
 ## Convención de mensajes de commit
 
-Los mensajes de commit **deben** seguir el siguiente formato:
+Los mensajes **deben** seguir este formato exacto:
 
 ```bash
 git commit -m "[TIPO]Descripción del cambio"
 ```
 
-Donde `TIPO` puede ser uno de:
-
-- `[ADD]`   → cuando agregas nuevo código o funcionalidad.
-- `[UPDATE]` → cuando actualizas o mejoras algo existente.
-- `[DELETE]` → cuando eliminas código, archivos o funcionalidades.
-- `[FIX]`   → cuando corriges un bug o comportamiento incorrecto.
-
+| Tipo       | Cuándo usarlo                                      |
+| ---------- | -------------------------------------------------- |
+| `[ADD]`    | Agregas nuevo código o funcionalidad               |
+| `[UPDATE]` | Actualizas o mejoras algo existente                |
+| `[DELETE]` | Eliminas código, archivos o funcionalidades        |
+| `[FIX]`    | Corriges un bug o comportamiento incorrecto        |
 
 ### Ejemplos correctos
 
-- `git commit -m "[ADD]Crea página de login"`
-- `git commit -m "[UPDATE]Actualiza estilos del header"`
-- `git commit -m "[DELETE]Elimina componente no usado"`
-- `git commit -m "[FIX]Corrige validación del formulario de registro"`
+```bash
+git commit -m "[ADD]Crea página de login"
+git commit -m "[UPDATE]Actualiza estilos del header"
+git commit -m "[DELETE]Elimina componente no usado"
+git commit -m "[FIX]Corrige validación del formulario de registro"
+```
 
+### Ejemplos incorrectos (el hook los bloqueará)
 
-### Ejemplos incorrectos (serán rechazados por el hook)
+```bash
+git commit -m "feat: agrega login"     # falta el formato [TIPO]
+git commit -m "[ADD]"                  # falta descripción
+git commit -m "ADD agrega login"       # faltan los corchetes
+```
 
-- `git commit -m "feat: agrega login"`  ← falta el formato `[TIPO]texto`
-- `git commit -m "[ADD]"`               ← falta descripción luego del tipo
-- `git commit -m "ADD agrega login"`    ← falta corchetes `[ADD]`
+---
 
-Si el mensaje no respeta este formato, el hook `commit-msg` bloqueará el commit.
+## Estilos — globals.css
+
+**Toda la estética del proyecto está definida en `src/app/globals.css`.**
+
+- No uses `style={{}}` en los componentes.
+- No uses atributos visuales (`stroke`, `fill`, `color`) en los SVGs del JSX.
+- No escribas `<style>` dentro de los componentes.
+- Usa las clases definidas en `globals.css` y variables CSS como `var(--color-primary)`.
 
 ---
 
