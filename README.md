@@ -7,13 +7,25 @@ Frontend del Proyecto USB desarrollado con **Next.js**, TypeScript y Tailwind CS
 - Node.js 18+
 - npm (o pnpm / yarn)
 
-## Instalación
+---
+
+## Cómo probar la rama de login
+
+### 1. Clonar el repositorio y cambiar a la rama
+
+```bash
+git clone https://github.com/LENSESU/FrontendUsb.git
+cd FrontendUsb
+git checkout feature/login-screen
+```
+
+### 2. Instalar dependencias
 
 ```bash
 npm install
 ```
 
-## Variables de entorno
+### 3. Configurar variables de entorno
 
 Crea un archivo `.env.local` en la raíz del proyecto:
 
@@ -21,9 +33,9 @@ Crea un archivo `.env.local` en la raíz del proyecto:
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-> En producción reemplaza con la URL real del backend desplegado en Render.
+> El backend debe estar corriendo (en Docker según su README) para que las llamadas a la API funcionen.
 
-## Desarrollo
+### 4. Correr el proyecto
 
 ```bash
 npm run dev
@@ -31,14 +43,7 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000) en el navegador.
 
-El backend debe estar corriendo (local o Docker) para que las llamadas a la API funcionen.
-
-## Build y producción
-
-```bash
-npm run build
-npm start
-```
+---
 
 ## Scripts
 
@@ -61,13 +66,6 @@ npm start
 ---
 
 ## Trabajo con el repositorio
-
-### Clonar el repositorio
-
-```bash
-git clone https://github.com/LENSESU/FrontendUsb.git
-cd FrontendUsb
-```
 
 ### Crear y usar una rama nueva
 
@@ -117,12 +115,12 @@ Los mensajes **deben** seguir este formato exacto:
 git commit -m "[TIPO]Descripción del cambio"
 ```
 
-| Tipo       | Cuándo usarlo                                      |
-| ---------- | -------------------------------------------------- |
-| `[ADD]`    | Agregas nuevo código o funcionalidad               |
-| `[UPDATE]` | Actualizas o mejoras algo existente                |
-| `[DELETE]` | Eliminas código, archivos o funcionalidades        |
-| `[FIX]`    | Corriges un bug o comportamiento incorrecto        |
+| Tipo       | Cuándo usarlo                               |
+| ---------- | ------------------------------------------- |
+| `[ADD]`    | Agregas nuevo código o funcionalidad        |
+| `[UPDATE]` | Actualizas o mejoras algo existente         |
+| `[DELETE]` | Eliminas código, archivos o funcionalidades |
+| `[FIX]`    | Corriges un bug o comportamiento incorrecto |
 
 ### Ejemplos correctos
 
@@ -151,21 +149,3 @@ git commit -m "ADD agrega login"       # faltan los corchetes
 - No uses atributos visuales (`stroke`, `fill`, `color`) en los SVGs del JSX.
 - No escribas `<style>` dentro de los componentes.
 - Usa las clases definidas en `globals.css` y variables CSS como `var(--color-primary)`.
-
----
-
-## Docker
-
-### Construir la imagen
-
-```bash
-docker build -t frontend-usb .
-```
-
-### Ejecutar el contenedor
-
-```bash
-docker run -p 3000:3000 frontend-usb
-```
-
-La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
