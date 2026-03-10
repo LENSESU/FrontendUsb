@@ -16,7 +16,7 @@ Frontend del Proyecto USB desarrollado con **Next.js**, TypeScript y Tailwind CS
 ```bash
 git clone https://github.com/LENSESU/FrontendUsb.git
 cd FrontendUsb
-git checkout feature/login-screen
+git checkout feature/dev
 ```
 
 ### 2. Instalar dependencias
