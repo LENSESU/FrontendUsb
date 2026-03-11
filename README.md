@@ -56,8 +56,8 @@ Este proyecto usa las siguientes dependencias clave:
 ### Clonar el repositorio
 
 ```bash
-git clone https://github.com/Chologalactico/FrontendUsb.git
-cd FRONTEND
+git clone https://github.com/LENSESU/FrontendUsb.git
+cd FrontendUsb
 ```
 
 
@@ -71,12 +71,14 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
    git checkout -b nombre-de-tu-rama
    ```
 
-2. **Trabajar en la rama**: haz commits normalmente.
+2. **Trabajar en la rama**: haz commits normalmente — siempre desde la **terminal**, no desde la UI de VSCode:
 
    ```bash
    git add .
    git commit -m "[ADD]Descripción del cambio"
    ```
+
+   > ⚠️ El hook `commit-msg` rechaza commits hechos desde la UI de VSCode porque no respetan el formato. Usa siempre la terminal.
 
 3. **Subir tu rama al remoto** (para que otros la vean o para abrir un Pull Request):
 
@@ -97,7 +99,7 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
    git branch -a
    ```
 
-Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `main` mediante Pull Requests o Merge Requests.
+Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `dev` mediante Pull Requests.
 
 ## Convención de mensajes de commit
 
@@ -109,10 +111,10 @@ git commit -m "[TIPO]Descripción del cambio"
 
 Donde `TIPO` puede ser uno de:
 
-- `[ADD]`   → cuando agregas nuevo código o funcionalidad.
+- `[ADD]`    → cuando agregas nuevo código o funcionalidad.
 - `[UPDATE]` → cuando actualizas o mejoras algo existente.
 - `[DELETE]` → cuando eliminas código, archivos o funcionalidades.
-- `[FIX]`   → cuando corriges un bug o comportamiento incorrecto.
+- `[FIX]`    → cuando corriges un bug o comportamiento incorrecto.
 
 
 ### Ejemplos correctos
@@ -148,3 +150,51 @@ docker run -p 3000:3000 frontend-usb
 ```
 
 La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+
+
+---
+
+## Variables de entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto antes de correr el proyecto:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+> El backend debe estar corriendo (en Docker según su README) para que las llamadas a la API funcionen.
+
+---
+
+## Estilos — globals.css
+
+**Toda la estética del proyecto está definida en `src/app/globals.css`.**
+
+- No uses `style={{}}` en los componentes.
+- No uses atributos visuales (`stroke`, `fill`, `color`) en los SVGs del JSX.
+- No escribas `<style>` dentro de los componentes.
+- Usa las clases definidas en `globals.css` y variables CSS como `var(--color-primary)`.
+
+---
+
+## Estructura de carpetas
+
+La estructura ya está creada. Cada quien trabaja **únicamente en su carpeta asignada**. No renombres archivos ni crees carpetas nuevas sin avisar.
+
+```
+src/app/
+├── globals.css               ← estilos globales, NO tocar sin avisar al equipo
+├── layout.tsx
+├── page.tsx                  ← pantalla de selección de rol
+├── login/
+│   ├── admin/page.tsx        ← login admin/técnico
+│   ├── estudiante/page.tsx   ← login estudiante OTP
+│   └── tecnico/page.tsx
+└── dashboard/
+    ├── admin/page.tsx
+    ├── estudiante/page.tsx
+    └── tecnico/page.tsx
+    ...
+```
+
+Los archivos se llaman `page.tsx` porque Next.js define las rutas por carpeta, no por nombre de archivo. Si el archivo no se llama exactamente `page.tsx`, la ruta no existe.
