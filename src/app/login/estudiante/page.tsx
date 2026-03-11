@@ -25,7 +25,25 @@ export default function LoginEstudiantePage() {
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Validacion de correo
+    const pattern = /^[a-zA-Z0-9]+@correo\.usbcali\.edu\.co$/; // '(letras y numeros)@usbcali.edu.co' | Los valores despues del @ son fijos, no hacepta modificaciones.
+    const trimmedEmail = email.trim(); // quita los espacios en blanco
+
+    if(!trimmedEmail){
+      setError("Por favor ingresa tu correo institucional.");
+      return; // Detiene la ejecucion de la funcion para que no llegue al try
+    }
+
+    if(!pattern.test(trimmedEmail)){ // Validacion del email
+      // Fallo
+      setError("El correo no es correcto.");
+      return; // Detiene la ejecucion de la funcion para que no llegue al try
+    }
+
+    setError(null);
     setLoading(true);
+
     try {
       const res = await fetch(`${API}/api/v1/auth/login`, {
         method: "POST",
