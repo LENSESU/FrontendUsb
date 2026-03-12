@@ -1,6 +1,8 @@
 ﻿"use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";  
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -10,6 +12,16 @@ export default function LoginPage() {
     email?: string;
     password?: string;
   }>({});
+
+  const { login, isLoggedIn } = useAuth();
+  const router = useRouter();
+
+  // redirect to home if already authenticated
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/");
+    }
+  }, [isLoggedIn, router]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -26,10 +38,15 @@ export default function LoginPage() {
 
     if (!email.trim() || !password.trim()) {
       setError("Por favor ingresa tu correo y contraseña.");
+      setErrors(nextErrors);
       return;
     }
 
     setErrors(nextErrors);
+
+    // at this point validation succeeded; simulate login
+    login();
+    router.push("/");
   };
 
   return (
