@@ -5,34 +5,49 @@ import { useRouter } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+type FieldErrors = {
+  email?: string;
+  password?: string;
+};
+
 export default function LoginEstudiantePage() {
   const router = useRouter();
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setSubmitError(null);
 
     // Validacion de correo
     const pattern = /^[a-zA-Z0-9]+@correo\.usbcali\.edu\.co$/; // '(letras y numeros)@usbcali.edu.co' | Los valores despues del @ son fijos, no hacepta modificaciones.
     const trimmedEmail = email.trim(); // quita los espacios en blanco
+    const trimmedPassword = password.trim();
+    const nextErrors: FieldErrors = {};
 
     if(!trimmedEmail){
-      setError("Por favor ingresa tu correo institucional.");
-      return; // Detiene la ejecucion de la funcion para que no llegue al try
+      nextErrors.email = "Por favor ingresa tu correo institucional.";
     }
 
-    if(!pattern.test(trimmedEmail)){ // Validacion del email
+    if(trimmedEmail && !pattern.test(trimmedEmail)){ // Validacion del email
       // Fallo
-      setError("El correo no es correcto.");
+      nextErrors.email = "El correo no es correcto.";
+    }
+
+    if(!trimmedPassword){
+      nextErrors.password = "Por favor ingresa tu contraseña.";
+    }
+
+    if (nextErrors.email || nextErrors.password) {
+      setFieldErrors(nextErrors);
       return; // Detiene la ejecucion de la funcion para que no llegue al try
     }
 
-    setError(null);
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -43,14 +58,17 @@ export default function LoginEstudiantePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail ?? "Correo o contraseña incorrectos.");
+        const detail = Array.isArray(data.detail)
+          ? data.detail.map((item: { msg?: string }) => item.msg).filter(Boolean).join(", ")
+          : data.detail;
+        setSubmitError(detail ?? "Correo o contraseña incorrectos.");
         return;
       }
       localStorage.setItem("access_token", data.access_token);
       if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
       router.push("/dashboard/estudiante");
     } catch {
-      setError("Sin conexión con el servidor.");
+      setSubmitError("Sin conexión con el servidor.");
     } finally {
       setLoading(false);
     }
@@ -89,10 +107,23 @@ export default function LoginEstudiantePage() {
                   autoComplete="email"
                   placeholder="usuario@correo.usbcali.edu.co"
                   value={email}
-                  onChange={e => { setEmail(e.target.value); setError(null); }}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    setSubmitError(null);
+                    if (fieldErrors.email) {
+                      setFieldErrors(prev => ({ ...prev, email: undefined }));
+                    }
+                  }}
                   required
-                  className={error ? "input-error" : ""}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? "email-error" : undefined}
+                  className={fieldErrors.email ? "input-error" : ""}
                 />
+                {fieldErrors.email && (
+                  <p id="email-error" className="field-error" role="alert">
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="field">
@@ -104,9 +135,17 @@ export default function LoginEstudiantePage() {
                     autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={e => { setPassword(e.target.value); setError(null); }}
+                    onChange={e => {
+                      setPassword(e.target.value);
+                      setSubmitError(null);
+                      if (fieldErrors.password) {
+                        setFieldErrors(prev => ({ ...prev, password: undefined }));
+                      }
+                    }}
                     required
-                    className={error ? "input-error" : ""}
+                    aria-invalid={Boolean(fieldErrors.password)}
+                    aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                    className={fieldErrors.password ? "input-error" : ""}
                   />
                   <button
                     type="button"
@@ -126,14 +165,19 @@ export default function LoginEstudiantePage() {
                     )}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <p id="password-error" className="field-error" role="alert">
+                    {fieldErrors.password}
+                  </p>
+                )}
               </div>
 
-              {error && (
+              {submitError && (
                 <div className="alert-error" role="alert">
                   <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
                   </svg>
-                  <p>{error}</p>
+                  <p>{submitError}</p>
                 </div>
               )}
 

@@ -543,6 +543,20 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
 .field select.input-error,
 .field textarea.input-error { border-color: var(--color-error); }
 
+.field input.input-error:focus,
+.field select.input-error:focus,
+.field textarea.input-error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.12);
+}
+
+.field-error {
+  margin-top: 6px;
+  font-size: var(--font-size-small);
+  color: var(--color-error);
+  line-height: 1.4;
+}
+
 .input-wrap { position: relative; }
 .input-wrap input { padding-right: 44px; }
 
