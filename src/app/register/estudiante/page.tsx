@@ -77,10 +77,7 @@ export default function RegisterEstudiantePage() {
         setError(data.detail ?? "Código incorrecto o expirado.");
         return;
       }
-      //localStorage.setItem("access_token", data.access_token);
-      //if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
-      //setStep("success");
-      //setTimeout(() => router.push("/dashboard/estudiante"), 1500);
+
       const auth = saveAuth({
         accessToken: data.access_token,
         refreshToken: data.refresh_token,

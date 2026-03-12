@@ -47,9 +47,6 @@ export default function LoginEstudiantePage() {
         setError(data.detail ?? "Correo o contraseña incorrectos.");
         return;
       }
-      //localStorage.setItem("access_token", data.access_token);
-      //if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
-      //router.push("/dashboard/estudiante");
 
       // Guardar sesión 
       const auth = saveAuth({
