@@ -38,6 +38,20 @@ npm start
 | `npm start`     | Servidor de producción   |
 | `npm run lint`  | Ejecutar ESLint          |
 
+## Autenticación (login/logout)
+
+Este proyecto incluye una implementación simple de autenticación de frontend
+para la historia de usuario de login. Se utiliza un contexto React que guarda
+un flag `isLoggedIn` en `localStorage`.
+
+1. Abre `/loginAdmin` para ingresar un correo y contraseña cualquiera.
+2. Si el login tiene éxito, serás redirigido a la página principal `/`.
+3. Un encabezado aparece con un botón **Cerrar sesión** cuando estás autenticado.
+4. Pulsar el botón elimina la sesión y te lleva de nuevo a `/loginAdmin`.
+
+Puedes reemplazar esta lógica de ejemplo por llamadas reales a tu API cuando
+desarrolles el backend.
+
 ## Dependencias principales
 
 Este proyecto usa las siguientes dependencias clave:
@@ -98,6 +112,8 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
    ```
 
 Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `main` mediante Pull Requests o Merge Requests.
+
+> ⚠️ Al trabajar en nuevas funcionalidades asegúrate de: instalar dependencias con `npm install` y seguir la convención de mensajes de commit descrita más abajo antes de hacer push.
 
 ## Convención de mensajes de commit
 

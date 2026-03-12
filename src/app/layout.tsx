@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import AuthWrapper from "../components/AuthWrapper";
+import Header from "../components/Header";
+
 export const metadata: Metadata = {
   title: "Proyecto USB - Frontend",
   description: "Aplicación frontend del Proyecto USB",
@@ -13,7 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <AuthWrapper>
+          <Header />
+          {children}
+        </AuthWrapper>
+      </body>
     </html>
   );
 }
