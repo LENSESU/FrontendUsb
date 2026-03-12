@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { saveAuth, getDashboardPathByRole } from "@/utils/auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -79,9 +80,18 @@ export default function LoginEstudiantePage() {
         setFormError(getLoginErrorMessage(data.detail));
         return;
       }
-      localStorage.setItem("access_token", data.access_token);
-      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
-      router.push("/dashboard/estudiante");
+
+      // Guardar sesión 
+      const auth = saveAuth({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresIn: data.expires_in,
+      });
+
+      // Redirigir según rol
+      const path = getDashboardPathByRole(auth.role);
+      router.push(path);
+      
     } catch {
       setFormError("Sin conexión con el servidor.");
     } finally {

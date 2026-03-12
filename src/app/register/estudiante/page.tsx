@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { saveAuth, getDashboardPathByRole } from "@/utils/auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const STUDENT_ROLE_ID = "f2f2e715-dde6-43e7-9bd4-21e222ff4d5e";
