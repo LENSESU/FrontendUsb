@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { saveAuth, getDashboardPathByRole } from "@/utils/auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const STUDENT_ROLE_ID = "8899d022-bb76-4008-a544-cafa7e74d0ac";
@@ -76,10 +77,23 @@ export default function RegisterEstudiantePage() {
         setError(data.detail ?? "Código incorrecto o expirado.");
         return;
       }
-      localStorage.setItem("access_token", data.access_token);
-      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      //localStorage.setItem("access_token", data.access_token);
+      //if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      //setStep("success");
+      //setTimeout(() => router.push("/dashboard/estudiante"), 1500);
+      const auth = saveAuth({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresIn: data.expires_in,
+      });
+
+      // Obtener ruta según el rol decodificado
+      const path = getDashboardPathByRole(auth.role);
+
       setStep("success");
-      setTimeout(() => router.push("/dashboard/estudiante"), 1500);
+
+      // Redirigir según rol
+      setTimeout(() => router.push(path), 1500);
     } catch {
       setError("Sin conexión con el servidor.");
     } finally {
