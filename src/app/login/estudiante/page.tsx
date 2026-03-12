@@ -1,28 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-type Step = "email" | "otp" | "success";
-
 export default function LoginEstudiantePage() {
   const router = useRouter();
-  const [step, setStep]         = useState<Step>("email");
   const [email, setEmail]       = useState("");
-  const [otp, setOtp]           = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(0);
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [cooldown]);
-
-  async function handleEmailSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -48,62 +39,20 @@ export default function LoginEstudiantePage() {
       const res = await fetch(`${API}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password: "" }),
-      });
-      const data = await res.json();
-      if (res.ok || res.status === 400 || res.status === 401) {
-        setStep("otp");
-        setCooldown(60);
-        return;
-      }
-      setError(data.detail ?? "No se pudo enviar el código. Intenta de nuevo.");
-    } catch {
-      setError("Sin conexión con el servidor.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleOtpSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/api/v1/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), code: otp }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail ?? "Código incorrecto o expirado.");
+        setError(data.detail ?? "Correo o contraseña incorrectos.");
         return;
       }
       localStorage.setItem("access_token", data.access_token);
       if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
-      setStep("success");
-      setTimeout(() => router.push("/dashboard/estudiante"), 1500);
+      router.push("/dashboard/estudiante");
     } catch {
       setError("Sin conexión con el servidor.");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleResend() {
-    if (cooldown > 0) return;
-    setError(null);
-    try {
-      const res = await fetch(`${API}/api/v1/auth/resend-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.detail ?? "No se pudo reenviar."); return; }
-      setCooldown(60);
-    } catch {
-      setError("Error de conexión al reenviar.");
     }
   }
 
@@ -111,126 +60,93 @@ export default function LoginEstudiantePage() {
     <div className="page-centered">
       <div className="form-wrapper">
 
-        <button
-          className="btn-back"
-          onClick={() => step === "email"
-            ? router.push("/")
-            : (setStep("email"), setOtp(""), setError(null))
-          }
-        >
+        <button className="btn-back" onClick={() => router.push("/")}>
           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
-          {step === "email" ? "Volver al inicio" : "Cambiar correo"}
+          Volver al inicio
         </button>
 
         <div className="card">
           <div className="card-stripe" />
           <div className="card-body-center">
 
-            {/* ── EMAIL ── */}
-            {step === "email" && (
-              <>
-                <div className="icon-wrap">
-                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                  </svg>
-                </div>
-                <h1 className="card-form-title">Welcome back</h1>
-                <form onSubmit={handleEmailSubmit} noValidate>
-                  <div className="field">
-                    <label htmlFor="email">Institutional Email</label>
-                    <input
-                      id="email"
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      placeholder="usuario@correo.usbcali.edu.co"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      className={error ? "input-error" : ""}
-                    />
-                  </div>
-                  {error && (
-                    <div className="alert-error" role="alert">
-                      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+            <div className="icon-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+
+            <h1 className="card-form-title">Acceso Estudiante</h1>
+
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="field">
+                <label htmlFor="email">Correo institucional</label>
+                <input
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="usuario@correo.usbcali.edu.co"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setError(null); }}
+                  required
+                  className={error ? "input-error" : ""}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="password">Contraseña</label>
+                <div className="input-wrap">
+                  <input
+                    id="password"
+                    type={showPass ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setError(null); }}
+                    required
+                    className={error ? "input-error" : ""}
+                  />
+                  <button
+                    type="button"
+                    className="input-icon-right"
+                    onClick={() => setShowPass(v => !v)}
+                    aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPass ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
                       </svg>
-                      <p>{error}</p>
-                    </div>
-                  )}
-                  <button type="submit" className="btn-primary" disabled={loading}>
-                    {loading ? <><span className="spinner" aria-hidden="true" />Enviando...</> : "SEND CODE"}
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                    )}
                   </button>
-                </form>
-                <button className="btn-link" onClick={() => router.push("/login/admin")}>
-                  Login with SSO
-                </button>
-              </>
-            )}
-
-            {/* ── OTP ── */}
-            {step === "otp" && (
-              <>
-                <div className="icon-wrap">
-                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="5" y="11" width="14" height="10" rx="2"/>
-                    <path strokeLinecap="round" d="M8 11V7a4 4 0 018 0v4"/>
-                  </svg>
                 </div>
-                <h1 className="card-form-title">Verifica tu correo</h1>
-                <p className="otp-hint">
-                  Enviamos un código de 6 dígitos a<br />
-                  <strong>{email}</strong>
-                </p>
-                <form onSubmit={handleOtpSubmit} noValidate>
-                  <div className="field">
-                    <label htmlFor="otp">Código de verificación</label>
-                    <input
-                      id="otp"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="• • • • • •"
-                      value={otp}
-                      onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      required
-                      maxLength={6}
-                      autoFocus
-                      className={`input-otp${error ? " input-error" : ""}`}
-                    />
-                  </div>
-                  {error && (
-                    <div className="alert-error" role="alert">
-                      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
-                      </svg>Estudiant
-                      <p>{error}</p>
-                    </div>
-                  )}
-                  <button type="submit" className="btn-primary" disabled={loading || otp.length < 6}>
-                    {loading ? <><span className="spinner" aria-hidden="true" />Verificando...</> : "VERIFICAR CÓDIGO"}
-                  </button>
-                </form>
-                <button className="btn-link" onClick={handleResend} disabled={cooldown > 0}>
-                  {cooldown > 0 ? `Reenviar en ${cooldown}s` : "¿No recibiste el código? Reenviar"}
-                </button>
-              </>
-            )}
+              </div>
 
-            {/* ── SUCCESS ── */}
-            {step === "success" && (
-              <>
-                <div className="success-icon-wrap">
-                  <svg width="28" height="28" viewBox="0 0 24 24" aria-label="Acceso exitoso">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+              {error && (
+                <div className="alert-error" role="alert">
+                  <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
                   </svg>
+                  <p>{error}</p>
                 </div>
-                <h2 className="card-form-title">¡Acceso exitoso!</h2>
-                <p className="text-secondary text-small">Redirigiendo al dashboard...</p>
-              </>
-            )}
+              )}
+
+              <button type="submit" className="btn-primary" disabled={loading}>
+                {loading
+                  ? <><span className="spinner" aria-hidden="true" />Ingresando...</>
+                  : "INGRESAR"}
+              </button>
+            </form>
+
+            <button className="btn-link" onClick={() => router.push("/register/estudiante")}>
+              ¿No tienes cuenta? Regístrate
+            </button>
 
           </div>
         </div>
