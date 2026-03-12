@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";  
 
 export default function LoginPage() {
@@ -13,15 +12,15 @@ export default function LoginPage() {
     password?: string;
   }>({});
 
-  const { login, isLoggedIn } = useAuth();
+  const { login, redirectTo, isLoggedIn } = useAuth();
   const router = useRouter();
 
   // redirect to home if already authenticated
   useEffect(() => {
     if (isLoggedIn) {
-      router.push("/");
+      redirectTo("/");
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, redirectTo]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,7 +45,7 @@ export default function LoginPage() {
 
     // at this point validation succeeded; simulate login
     login();
-    router.push("/");
+    redirectTo("/");
   };
 
   return (
