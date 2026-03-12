@@ -62,7 +62,7 @@ export default function Home() {
 
       </div>
 
-      <p className="page-footer">© {new Date().getFullYear()} Universidad Simón Bolívar · USB LENS</p>
+      <p className="page-footer">© {new Date().getFullYear()} Universidad de San Buenaventura Cali · USB LENS</p>
     </div>
   );
 }
