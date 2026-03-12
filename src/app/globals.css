@@ -543,6 +543,12 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
 .field select.input-error,
 .field textarea.input-error { border-color: var(--color-error); }
 
+.field input.input-error:focus,
+.field select.input-error:focus,
+.field textarea.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.14);
+}
+
 .input-wrap { position: relative; }
 .input-wrap input { padding-right: 44px; }
 
@@ -851,6 +857,17 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
   margin-bottom: var(--space-xl);
 }
 
+.verify-helper-text {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.verify-helper-text--error {
+  color: var(--color-error);
+}
+
 .verify-submit-btn {
   width: 100%;
   padding: 12px 0;
@@ -890,6 +907,11 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
   text-transform: uppercase;
   letter-spacing: 0.04em;
   transition: color var(--transition-fast);
+}
+
+.verify-resend-btn:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
 }
 
 .verify-resend-btn:hover {
@@ -933,4 +955,20 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
 .code-input-digit:focus {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-focus);
+}
+
+.code-input-digit--error {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.code-input-digit--error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.14);
+}
+
+.code-input-digit:disabled {
+  background: var(--color-bg-muted);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
 }

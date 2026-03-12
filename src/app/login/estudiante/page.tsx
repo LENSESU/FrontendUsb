@@ -5,6 +5,39 @@ import { useRouter } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+function normalizeErrorMessage(detail: unknown, fallback: string) {
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "msg" in item && typeof item.msg === "string") {
+          return item.msg;
+        }
+        return null;
+      })
+      .filter((message): message is string => Boolean(message));
+
+    return messages.length > 0 ? messages.join(", ") : fallback;
+  }
+
+  return typeof detail === "string" && detail.trim() ? detail : fallback;
+}
+
+function getFriendlyLoginError(detail: unknown) {
+  const message = normalizeErrorMessage(detail, "No se pudo iniciar sesión.");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("cred") || normalized.includes("correo") || normalized.includes("contrase") || normalized.includes("unauthorized")) {
+    return "La autenticación falló. Verifica tu correo y contraseña.";
+  }
+
+  if (normalized.includes("otp") || normalized.includes("code") || normalized.includes("código") || normalized.includes("codigo")) {
+    return "Tu acceso requiere verificación por código. Intenta nuevamente para recibirlo.";
+  }
+
+  return message;
+}
+
 export default function LoginEstudiantePage() {
   const router = useRouter();
   const [email, setEmail]       = useState("");
@@ -41,14 +74,21 @@ export default function LoginEstudiantePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        setError(data.detail ?? "Correo o contraseña incorrectos.");
+        setError(getFriendlyLoginError(data?.detail));
         return;
       }
-      localStorage.setItem("access_token", data.access_token);
-      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
-      router.push("/dashboard/estudiante");
+
+      if (data?.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+        router.push("/dashboard/estudiante");
+        return;
+      }
+
+      router.push(`/verify-code?email=${encodeURIComponent(trimmedEmail)}`);
     } catch {
       setError("Sin conexión con el servidor.");
     } finally {
@@ -91,6 +131,7 @@ export default function LoginEstudiantePage() {
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError(null); }}
                   required
+                  aria-invalid={Boolean(error)}
                   className={error ? "input-error" : ""}
                 />
               </div>
@@ -106,6 +147,7 @@ export default function LoginEstudiantePage() {
                     value={password}
                     onChange={e => { setPassword(e.target.value); setError(null); }}
                     required
+                    aria-invalid={Boolean(error)}
                     className={error ? "input-error" : ""}
                   />
                   <button
