@@ -11,22 +11,13 @@ import {
 interface CodeInputProps {
   length?: number;
   onChange: (code: string) => void;
-  hasError?: boolean;
-  disabled?: boolean;
 }
 
-export default function CodeInput({
-  length = 6,
-  onChange,
-  hasError = false,
-  disabled = false,
-}: CodeInputProps) {
+export default function CodeInput({ length = 6, onChange }: CodeInputProps) {
   const [values, setValues] = useState<string[]>(Array(length).fill(""));
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    if (disabled) return;
-
     const val = e.target.value;
     if (!/^\d*$/.test(val)) return;
 
@@ -41,16 +32,12 @@ export default function CodeInput({
   };
 
   const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (disabled) return;
-
     if (e.key === "Backspace" && !values[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
     }
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
-    if (disabled) return;
-
     e.preventDefault();
     const paste = e.clipboardData
       .getData("text")
@@ -85,9 +72,7 @@ export default function CodeInput({
           onPaste={handlePaste}
           autoFocus={i === 0}
           autoComplete="one-time-code"
-          aria-invalid={hasError}
-          disabled={disabled}
-          className={`code-input-digit${hasError ? " code-input-digit--error" : ""}`}
+          className="code-input-digit"
         />
       ))}
     </div>

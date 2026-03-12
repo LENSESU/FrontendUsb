@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import CodeInput from "@/components/CodeInput";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -43,17 +43,20 @@ function getFriendlyCodeError(detail: unknown) {
   return message;
 }
 
-function VerifyCodeContent() {
+export default function VerifyCodePage() {
   const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const email = useMemo(() => searchParams.get("email")?.trim() ?? "", [searchParams]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setEmail(params.get("email")?.trim() ?? "");
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -198,14 +201,7 @@ function VerifyCodeContent() {
               setCode(value);
               if (error) setError(null);
             }}
-            hasError={Boolean(error)}
-            disabled={loading || resending || !email}
           />
-          <p className={`verify-helper-text${error ? " verify-helper-text--error" : ""}`}>
-            {error
-              ? "Verifica cada dígito antes de continuar."
-              : "El código debe tener 6 dígitos numéricos."}
-          </p>
         </div>
 
         <button
@@ -230,16 +226,6 @@ function VerifyCodeContent() {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-export default function VerifyCodePage() {
-  return (
-    <div className="verify-page">
-      <Suspense fallback={<div className="verify-card"><div className="verify-card__accent" /><div className="verify-card__body"><p className="verify-description">Cargando verificación...</p></div></div>}>
-        <VerifyCodeContent />
-      </Suspense>
 
       <p className="verify-footer">
         Sistema de Verificación Seguro
