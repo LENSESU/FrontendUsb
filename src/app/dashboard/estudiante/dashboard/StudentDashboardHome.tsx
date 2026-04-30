@@ -339,7 +339,7 @@ export default function StudentDashboardHome({
               Mis Incidentes Recientes
             </h2>
             <Link
-              href="/dashboard/estudiante/incident-list"
+              href="/dashboard/estudiante/reportes"
               className="btn-link !mt-0 inline-flex !w-auto shrink-0 items-center gap-1 text-left text-sm font-semibold"
             >
               Ver todo
