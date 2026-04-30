@@ -691,17 +691,23 @@ export default function EstudianteIncidentePage() {
 									hidden
 								/>
 								{imagePreviewUrl ? (
-									<div style={{ marginTop: "0.75rem" }}>
+									<div
+										style={{
+										marginTop: "0.75rem",
+										position: "relative",
+										width: "100%",
+										aspectRatio: "4 / 3",
+										borderRadius: "0.5rem",
+										overflow: "hidden",
+										border: "1px solid var(--color-border)",
+										}}
+									>
 										<Image
-											src={imagePreviewUrl}
-											alt="Vista previa de evidencia del incidente"
-											fill
-											style={{
-												objectFit: "cover",
-												borderRadius: "0.5rem",
-												border: "1px solid var(--color-border)",
-											}}
-											unoptimized
+										src={imagePreviewUrl}
+										alt="Vista previa de evidencia del incidente"
+										fill
+										style={{ objectFit: "cover" }}
+										unoptimized
 										/>
 									</div>
 								) : null}
