@@ -52,11 +52,7 @@ export default function TechnicianDashboardHome() {
         }
 
         const data = await res.json();
-
-        const assignments = Array.isArray(data)
-          ? data
-          : data.items || [];
-
+        const assignments = Array.isArray(data) ? data : data.items || [];
         setIncidents(assignments);
       } catch (err) {
         setError(
@@ -73,19 +69,12 @@ export default function TechnicianDashboardHome() {
   }, []);
 
   const statusCounts = useMemo(() => {
-    const counts = {
-      total: incidents.length,
-      nuevo: 0,
-      enProceso: 0,
-      resuelto: 0,
-    };
-
+    const counts = { total: incidents.length, nuevo: 0, enProceso: 0, resuelto: 0 };
     incidents.forEach((incident) => {
       if (incident.status === "Nuevo") counts.nuevo += 1;
       else if (incident.status === "En_proceso") counts.enProceso += 1;
       else if (incident.status === "Resuelto") counts.resuelto += 1;
     });
-
     return counts;
   }, [incidents]);
 
@@ -110,10 +99,7 @@ export default function TechnicianDashboardHome() {
 
   if (error) {
     return (
-      <div
-        className="container"
-        style={{ paddingTop: "var(--space-xl)" }}
-      >
+      <div className="container" style={{ paddingTop: "var(--space-xl)" }}>
         <div className="alert-error">
           <p>{error}</p>
         </div>
@@ -122,120 +108,50 @@ export default function TechnicianDashboardHome() {
   }
 
   return (
-    <div
-      className="container"
-      style={{ paddingBottom: "var(--space-xl)" }}
-    >
+    <div className="container" style={{ paddingBottom: "var(--space-xl)" }}>
+
+      {/* ── Título ── */}
       <div style={{ marginBottom: "var(--space-lg)" }}>
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: "var(--color-text-primary)",
-          }}
-        >
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--color-text-primary)" }}>
           Panel del Tecnico
         </h1>
-
-        <p
-          className="text-secondary"
-          style={{ marginTop: 6 }}
-        >
+        <p className="text-secondary" style={{ marginTop: 6 }}>
           Resumen de tus asignaciones activas.
         </p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "var(--space-md)",
-          marginBottom: "var(--space-lg)",
-        }}
-      >
-        <div className="card" style={{ padding: 16 }}>
-          <p className="text-xs text-secondary">
-            Total asignados
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              marginTop: 6,
-            }}
-          >
-            {statusCounts.total}
-          </p>
+      {/* ── Grid de estadísticas: 2 cols en mobile, 4 en desktop ── */}
+      <div className="tech-stats-grid">
+        <div className="card tech-stat-card">
+          <p className="stat-label">Total asignados</p>
+          <p className="stat-value">{statusCounts.total}</p>
         </div>
 
-        <div className="card" style={{ padding: 16 }}>
-          <p className="text-xs text-secondary">
-            En progreso
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              marginTop: 6,
-            }}
-          >
-            {statusCounts.enProceso}
-          </p>
+        <div className="card tech-stat-card">
+          <p className="stat-label">En progreso</p>
+          <p className="stat-value">{statusCounts.enProceso}</p>
         </div>
 
-        <div className="card" style={{ padding: 16 }}>
-          <p className="text-xs text-secondary">
-            Nuevos
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              marginTop: 6,
-            }}
-          >
-            {statusCounts.nuevo}
-          </p>
+        <div className="card tech-stat-card">
+          <p className="stat-label">Nuevos</p>
+          <p className="stat-value">{statusCounts.nuevo}</p>
         </div>
 
-        <div className="card" style={{ padding: 16 }}>
-          <p className="text-xs text-secondary">
-            Resueltos
-          </p>
-          <p
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              marginTop: 6,
-            }}
-          >
-            {statusCounts.resuelto}
-          </p>
+        <div className="card tech-stat-card">
+          <p className="stat-label">Resueltos</p>
+          <p className="stat-value">{statusCounts.resuelto}</p>
         </div>
       </div>
 
+      {/* ── Card de incidentes recientes ── */}
       <div className="card" style={{ padding: 16 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            marginBottom: 12,
-            flexWrap: "wrap",
-          }}
-        >
+
+        {/* Cabecera */}
+        <div className="tech-incidents-header">
           <div>
-            <p
-              style={{
-                fontWeight: 600,
-                color: "var(--color-text-primary)",
-              }}
-            >
+            <p style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>
               Incidentes recientes
             </p>
-
             <p className="text-xs text-secondary">
               {recentIncidents.length === 0
                 ? "No tienes incidentes asignados todavia."
@@ -245,158 +161,126 @@ export default function TechnicianDashboardHome() {
 
           <button
             type="button"
-            className="btn-secondary"
-            onClick={() =>
-              router.push(
-                "/dashboard/tecnico/incidentes"
-              )
-            }
-
-             style={{
-              width: "auto",
-              minWidth: "unset",
-              padding: "8px 14px",
-              flexShrink: 0,
-            }}
+            className="btn-secondary btn-secondary-compact"
+            onClick={() => router.push("/dashboard/tecnico/incidentes")}
           >
             Ver todos
           </button>
         </div>
 
+        {/* Contenido */}
         {recentIncidents.length === 0 ? (
           <div className="card-body-center">
-            <p
-              className="card-desc"
-              style={{ marginBottom: 0 }}
-            >
+            <p className="card-desc" style={{ marginBottom: 0 }}>
               Cuando tengas asignaciones apareceran aqui.
             </p>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                minWidth: 850,
-              }}
-            >
-              <thead>
-                <tr
-                  style={{
-                    background:
-                      "var(--color-bg-muted)",
-                    textAlign: "left",
-                  }}
-                >
-                  <th style={{ padding: 10 }}>ID</th>
-                  <th style={{ padding: 10 }}>
-                    Categoria
-                  </th>
-                  <th style={{ padding: 10 }}>
-                    Lugar
-                  </th>
-                  <th style={{ padding: 10 }}>
-                    Estado
-                  </th>
-                  <th style={{ padding: 10 }}>
-                    Fecha
-                  </th>
-                  <th style={{ padding: 10 }}>
-                    Admin
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {recentIncidents.map((incident) => (
-                  <tr
-                    key={incident.id}
-                    onClick={() =>
-                      router.push(
-                        `/dashboard/tecnico/incidente-detalle?id=${incident.id}`
-                      )
-                    }
-                    style={{
-                      borderBottom:
-                        "1px solid var(--color-border-light)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <td
+          <>
+            {/* ── Tabla: solo tablet+ (≥ 640px) ── */}
+            <div className="tech-incidents-table-wrap hide-mobile">
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+                <thead>
+                  <tr style={{ background: "var(--color-bg-muted)", textAlign: "left" }}>
+                    <th style={{ padding: 10, fontSize: "var(--font-size-xs)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)" }}>ID</th>
+                    <th style={{ padding: 10, fontSize: "var(--font-size-xs)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)" }}>Categoria</th>
+                    <th style={{ padding: 10, fontSize: "var(--font-size-xs)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)" }}>Lugar</th>
+                    <th style={{ padding: 10, fontSize: "var(--font-size-xs)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)" }}>Estado</th>
+                    <th style={{ padding: 10, fontSize: "var(--font-size-xs)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)" }}>Fecha</th>
+                    <th style={{ padding: 10, fontSize: "var(--font-size-xs)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)" }}>Admin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentIncidents.map((incident) => (
+                    <tr
+                      key={incident.id}
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/tecnico/incidente-detalle?id=${incident.id}`
+                        )
+                      }
                       style={{
-                        padding: 10,
-                        fontWeight: 700,
-                        color:
-                          "var(--color-primary)",
+                        borderBottom: "1px solid var(--color-border-light)",
+                        cursor: "pointer",
+                        transition: "background var(--transition-fast)",
                       }}
                     >
-                      #
-                      {incident.id
-                        .slice(0, 8)
-                        .toUpperCase()}
-                    </td>
+                      <td style={{ padding: 10, fontWeight: 700, color: "var(--color-primary)", fontSize: "var(--font-size-small)" }}>
+                        #{incident.id.slice(0, 8).toUpperCase()}
+                      </td>
+                      <td style={{ padding: 10, fontSize: "var(--font-size-small)" }}>
+                        {incident.categoria}
+                      </td>
+                      <td style={{ padding: 10, fontSize: "var(--font-size-small)", color: "var(--color-text-secondary)" }}>
+                        {incident.location || "Sin ubicación"}
+                      </td>
+                      <td style={{ padding: 10 }}>
+                        <IncidentStatusBadge status={incident.status} />
+                      </td>
+                      <td style={{ padding: 10, fontSize: "var(--font-size-small)", color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
+                        {new Date(incident.created_at).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: 10, fontSize: "var(--font-size-small)", color: "var(--color-text-secondary)" }}>
+                        {incident.assigned_by_admin}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                    <td style={{ padding: 10 }}>
-                      {incident.categoria}
-                    </td>
+            {/* ── Lista de tarjetas: solo mobile (< 640px) ── */}
+            <div className="tech-incidents-list hide-desktop">
+              {recentIncidents.map((incident) => (
+                <div
+                  key={incident.id}
+                  className="tech-incident-card"
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/tecnico/incidente-detalle?id=${incident.id}`
+                    )
+                  }
+                >
+                  {/* Fila superior: ID + badge de estado */}
+                  <div className="tech-incident-card-top">
+                    <span className="tech-incident-card-id">
+                      #{incident.id.slice(0, 8).toUpperCase()}
+                    </span>
+                    <IncidentStatusBadge status={incident.status} />
+                  </div>
 
-                    <td style={{ padding: 10 }}>
-                      {incident.location ||
-                        "Sin ubicación"}
-                    </td>
+                  {/* Categoría */}
+                  <span className="tech-incident-card-category">
+                    {incident.categoria}
+                  </span>
 
-                    <td style={{ padding: 10 }}>
-                      <IncidentStatusBadge
-                        status={incident.status}
-                      />
-                    </td>
-
-                    <td style={{ padding: 10 }}>
-                      {new Date(
-                        incident.created_at
-                      ).toLocaleDateString()}
-                    </td>
-
-                    <td style={{ padding: 10 }}>
-                      {
-                        incident.assigned_by_admin
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  {/* Meta: ubicación + fecha */}
+                  <div className="tech-incident-card-meta">
+                    <span className="tech-incident-card-location">
+                      {incident.location || "Sin ubicación"}
+                    </span>
+                    <span className="tech-incident-card-date">
+                      {new Date(incident.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
-      {recentIncidents.length > 0 ? (
-        <div
-          style={{
-            marginTop: "var(--space-md)",
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <IncidentStatusBadge
-            status="Nuevo"
-            showIcon
-          />
-          <IncidentStatusBadge
-            status="En_proceso"
-            showIcon
-          />
-          <IncidentStatusBadge
-            status="Resuelto"
-            showIcon
-          />
+      {/* ── Leyenda de badges ── */}
+      {recentIncidents.length > 0 && (
+        <div className="tech-legend">
+          <IncidentStatusBadge status="Nuevo" showIcon />
+          <IncidentStatusBadge status="En_proceso" showIcon />
+          <IncidentStatusBadge status="Resuelto" showIcon />
           <IncidentPriorityBadge priority="Alta" />
           <IncidentPriorityBadge priority="Media" />
           <IncidentPriorityBadge priority="Baja" />
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

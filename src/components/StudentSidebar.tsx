@@ -8,6 +8,8 @@ type Props = {
   auth: AuthData | null;
   onLogout: () => void;
   isLoggingOut: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 const NAV_MAIN = [
@@ -53,7 +55,7 @@ function getFirstName(email: string) {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
-export default function StudentSidebar({ auth, onLogout, isLoggingOut }: Props) {
+export default function StudentSidebar({ auth, onLogout, isLoggingOut, isOpen, onClose }: Props) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -62,7 +64,22 @@ export default function StudentSidebar({ auth, onLogout, isLoggingOut }: Props) 
   }
 
   return (
-    <aside className="student-sidebar">
+    <aside className={`student-sidebar${isOpen ? " sidebar-mobile-open" : ""}`}>
+
+      {/* Botón cerrar — solo mobile */}
+      <button
+        type="button"
+        className="sidebar-close-btn"
+        onClick={onClose}
+        aria-label="Cerrar menú"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -75,6 +92,7 @@ export default function StudentSidebar({ auth, onLogout, isLoggingOut }: Props) 
         </div>
       </div>
 
+      {/* Nav principal */}
       <nav className="sidebar-nav" aria-label="Principal">
         <p className="sidebar-section-label">PRINCIPAL</p>
         <ul role="list">
@@ -82,6 +100,7 @@ export default function StudentSidebar({ auth, onLogout, isLoggingOut }: Props) 
             <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={onClose}
                 className={`sidebar-nav-item${isActive(item.href) ? " sidebar-nav-item-active" : ""}`}
                 aria-current={isActive(item.href) ? "page" : undefined}
               >
@@ -94,12 +113,14 @@ export default function StudentSidebar({ auth, onLogout, isLoggingOut }: Props) 
         </ul>
       </nav>
 
+      {/* Nav cuenta */}
       <nav className="sidebar-nav" aria-label="Cuenta">
         <p className="sidebar-section-label">CUENTA</p>
         <ul role="list">
           <li>
             <Link
               href="/dashboard/estudiante/perfil"
+              onClick={onClose}
               className={`sidebar-nav-item${isActive("/dashboard/estudiante/perfil") ? " sidebar-nav-item-active" : ""}`}
               aria-current={isActive("/dashboard/estudiante/perfil") ? "page" : undefined}
             >
@@ -114,6 +135,7 @@ export default function StudentSidebar({ auth, onLogout, isLoggingOut }: Props) 
         </ul>
       </nav>
 
+      {/* Footer */}
       <div className="sidebar-footer">
         {auth && (
           <div className="sidebar-user">

@@ -8,6 +8,8 @@ type Props = {
   auth: AuthData | null;
   onLogout: () => void;
   isLoggingOut: boolean;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 const NAV_MAIN = [
@@ -62,7 +64,7 @@ function getFirstName(email: string) {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
-export default function TechnicianSidebar({ auth, onLogout, isLoggingOut }: Props) {
+export default function TechnicianSidebar({ auth, onLogout, isLoggingOut, isOpen, onClose }: Props) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -76,8 +78,28 @@ export default function TechnicianSidebar({ auth, onLogout, isLoggingOut }: Prop
     return pathname.startsWith(href);
   }
 
+  // Al navegar en mobile, cierra el drawer
+  function handleNavClick() {
+    onClose();
+  }
+
   return (
-    <aside className="student-sidebar">
+    <aside className={`student-sidebar${isOpen ? " sidebar-mobile-open" : ""}`}>
+
+      {/* ── Botón cerrar (solo mobile) ── */}
+      <button
+        type="button"
+        className="sidebar-close-btn"
+        onClick={onClose}
+        aria-label="Cerrar menú"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {/* ── Logo ── */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -90,6 +112,7 @@ export default function TechnicianSidebar({ auth, onLogout, isLoggingOut }: Prop
         </div>
       </div>
 
+      {/* ── Navegación ── */}
       <nav className="sidebar-nav" aria-label="Principal">
         <p className="sidebar-section-label">MENU</p>
         <ul role="list">
@@ -97,6 +120,7 @@ export default function TechnicianSidebar({ auth, onLogout, isLoggingOut }: Prop
             <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={handleNavClick}
                 className={`sidebar-nav-item${isActive(item.href) ? " sidebar-nav-item-active" : ""}`}
                 aria-current={isActive(item.href) ? "page" : undefined}
               >
@@ -109,6 +133,7 @@ export default function TechnicianSidebar({ auth, onLogout, isLoggingOut }: Prop
         </ul>
       </nav>
 
+      {/* ── Footer: usuario + logout ── */}
       <div className="sidebar-footer">
         {auth && (
           <div className="sidebar-user">

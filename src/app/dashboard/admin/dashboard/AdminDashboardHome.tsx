@@ -320,22 +320,7 @@ export default function AdminDashboardHome({ auth }: Props) {
 
         {/* ===== MOBILE ===== */}
         <div className="-mx-4 mb-4 md:hidden">
-          <div className="border-b border-[var(--color-border-light)] bg-white px-4 py-3">
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--color-primary-border)] bg-[var(--color-primary-bg)] text-[var(--color-primary)]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </div>
-
-              <p className="text-center text-[18px] font-bold text-[var(--color-text-primary)]">
-                Panel Administrador
-              </p>
-
-              <div className="h-10 w-10" />
-            </div>
-          </div>
 
           <div className="bg-[var(--color-bg-muted)] px-4 py-4">
             <p className="font-bold text-[var(--color-text-primary)]">
