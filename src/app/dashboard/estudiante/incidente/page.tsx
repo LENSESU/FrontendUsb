@@ -9,6 +9,7 @@ import {
 	type AuthData,
 } from "@/utils/auth";
 import LocationField from "@/components/LocationField";
+import Image from "next/image";
 
 type GpsCoordinates = {
 	latitude: number;
@@ -691,16 +692,16 @@ export default function EstudianteIncidentePage() {
 								/>
 								{imagePreviewUrl ? (
 									<div style={{ marginTop: "0.75rem" }}>
-										<img
+										<Image
 											src={imagePreviewUrl}
 											alt="Vista previa de evidencia del incidente"
+											fill
 											style={{
-												width: "100%",
-												maxHeight: "220px",
 												objectFit: "cover",
 												borderRadius: "0.5rem",
 												border: "1px solid var(--color-border)",
 											}}
+											unoptimized
 										/>
 									</div>
 								) : null}
