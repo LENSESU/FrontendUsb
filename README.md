@@ -202,7 +202,6 @@ src/
 │           │   ├── StudentDashboardHome.tsx
 │           │   └── incidente-detalle/page.tsx
 │           ├── incidente/page.tsx                       ← reporte de nuevo incidente
-│           ├── incident-list/page.tsx                   ← listado de incidentes
 │           └── reportes/page.tsx
 ├── components/
 │   ├── AuthProvider.tsx                                 ← contexto de autenticación

@@ -36,6 +36,19 @@ const NAV_MAIN = [
   },
 ];
 
+const NAV_CUENTA = [
+  {
+    label: "Perfil",
+    href: "/dashboard/admin/perfil",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
+  },
+];
+
 function getInitials(email: string) {
   return email.split("@")[0].slice(0, 2).toUpperCase();
 }
@@ -83,11 +96,32 @@ export default function AdminSidebar({ auth, onLogout, isLoggingOut, isOpen, onC
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Nav principal */}
       <nav className="sidebar-nav" aria-label="Principal">
-        <p className="sidebar-section-label">MENÚ</p>
+        <p className="sidebar-section-label">PRINCIPAL</p>
         <ul role="list">
           {NAV_MAIN.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                className={`sidebar-nav-item${isActive(item.href) ? " sidebar-nav-item-active" : ""}`}
+                aria-current={isActive(item.href) ? "page" : undefined}
+              >
+                <span className="sidebar-nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
+                {isActive(item.href) && <span className="sidebar-nav-dot" aria-hidden="true" />}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {/* Nav cuenta */}
+      <nav className="sidebar-nav" aria-label="Cuenta">
+        <p className="sidebar-section-label">CUENTA</p>
+        <ul role="list">
+          {NAV_CUENTA.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
@@ -107,15 +141,21 @@ export default function AdminSidebar({ auth, onLogout, isLoggingOut, isOpen, onC
       {/* Footer */}
       <div className="sidebar-footer">
         {auth && (
-          <div className="sidebar-user">
+          <Link
+            href="/dashboard/admin/perfil"
+            onClick={onClose}
+            className="sidebar-user"
+            style={{ textDecoration: "none", cursor: "pointer" }}
+            aria-label="Ver perfil"
+          >
             <div className="sidebar-user-avatar" aria-hidden="true">
               {getInitials(auth.email ?? "AD")}
             </div>
             <div className="sidebar-user-info">
               <p className="sidebar-user-name">{getFirstName(auth.email ?? "Admin")}</p>
-              <p className="sidebar-user-role">Administrador</p>
+              <p className="sidebar-user-role">Administrador · Ing. Sistemas</p>
             </div>
-          </div>
+          </Link>
         )}
         <button
           type="button"
