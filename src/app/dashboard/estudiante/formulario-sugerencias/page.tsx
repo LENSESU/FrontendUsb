@@ -827,9 +827,20 @@ export default function CrearSugerenciaPage() {
 						</h1>
 
 						{auth?.email ? (
-							<p className="otp-hint">
+							<p
+								className="otp-hint"
+								style={{
+									overflowWrap: "anywhere",
+									wordBreak: "break-word",
+								}}
+							>
 								Publicando como{" "}
-								<strong>
+								<strong
+									style={{
+										overflowWrap: "anywhere",
+										wordBreak: "break-word",
+									}}
+								>
 									{auth.email}
 								</strong>
 							</p>
@@ -1015,8 +1026,7 @@ export default function CrearSugerenciaPage() {
 											handleOpenFilePicker
 										}
 									>
-										📁 Subir
-										archivo
+										Subir archivo
 									</button>
 
 									<button
@@ -1029,7 +1039,7 @@ export default function CrearSugerenciaPage() {
 											isStartingCamera
 										}
 									>
-										📷{" "}
+										
 										{isStartingCamera
 											? "Abriendo..."
 											: "Tomar foto"}
@@ -1093,7 +1103,9 @@ export default function CrearSugerenciaPage() {
 													"flex",
 												gap: "0.75rem",
 												marginTop:
-													"0.75rem",
+													"1rem",
+												flexWrap: "wrap",
+												width: "100%",
 											}}
 										>
 											<button
@@ -1175,6 +1187,7 @@ export default function CrearSugerenciaPage() {
 									gap: "0.75rem",
 									marginTop:
 										"1rem",
+									width: "100%",
 								}}
 							>
 								<button
@@ -1183,6 +1196,9 @@ export default function CrearSugerenciaPage() {
 									onClick={
 										resetForm
 									}
+									style={{
+										flex: 1,
+									}}
 								>
 									Limpiar
 								</button>
@@ -1193,10 +1209,14 @@ export default function CrearSugerenciaPage() {
 									disabled={
 										isSubmitting
 									}
+									style={{
+										flex: 1,
+									}}
+									
 								>
 									{isSubmitting
 										? "Publicando..."
-										: "Publicar sugerencia"}
+										: "Publicar"}
 								</button>
 							</div>
 						</form>
