@@ -573,16 +573,38 @@ export default function MisSugerenciasPage() {
         {/* ── Header ── */}
         <header className="mb-6 sm:mb-8">
           <div className="-mx-4 bg-[var(--color-bg-muted)] px-4 py-4 mb-4 md:hidden">
-            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Mis sugerencias</h1>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              Seguimiento de tus aportes.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Mis sugerencias</h1>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                  Seguimiento de tus aportes.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => router.push("/dashboard/estudiante/formulario-sugerencias")}
+                style={{ width: "auto", padding: "8px 12px", flexShrink: 0 }}
+              >
+                Nueva
+              </button>
+            </div>
           </div>
-          <div className="hidden md:block">
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Mis sugerencias</h1>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              Consulta tus aportes y la recepcion que han tenido en la comunidad.
-            </p>
+          <div className="hidden items-start justify-between gap-4 md:flex">
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Mis sugerencias</h1>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Consulta tus aportes y la recepcion que han tenido en la comunidad.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => router.push("/dashboard/estudiante/formulario-sugerencias")}
+              style={{ width: "auto", padding: "10px 18px", flexShrink: 0 }}
+            >
+              Nueva sugerencia
+            </button>
           </div>
         </header>
 
@@ -813,6 +835,16 @@ export default function MisSugerenciasPage() {
                   style={{ width: "auto", padding: "8px 20px", marginTop: "var(--space-md)" }}
                 >
                   Limpiar filtros
+                </button>
+              )}
+              {!hasFilters && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => router.push("/dashboard/estudiante/formulario-sugerencias")}
+                  style={{ width: "auto", padding: "8px 20px", marginTop: "var(--space-md)" }}
+                >
+                  Crear sugerencia
                 </button>
               )}
             </div>
