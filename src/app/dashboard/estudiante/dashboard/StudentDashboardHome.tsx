@@ -261,6 +261,9 @@ export default function StudentDashboardHome({
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [popularSuggestions, setPopularSuggestions] = useState<PopularSuggestionItem[]>([]);
 
+  const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -368,6 +371,42 @@ export default function StudentDashboardHome({
       cancelled = true;
     };
   }, []);
+
+  async function handleVote(suggestionId: string) {
+    if (votingIds.has(suggestionId) || votedIds.has(suggestionId)) return;
+
+    setVotingIds((prev) => new Set(prev).add(suggestionId));
+
+    try {
+      const session = await restoreAuthSession();
+      if (!session?.accessToken) return;
+
+      const res = await fetch(`${API}/api/v1/suggestions/${suggestionId}/vote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (res.status === 201) {
+        setVotedIds((prev) => new Set(prev).add(suggestionId));
+        setPopularSuggestions((prev) =>
+          prev.map((s) =>
+            s.id === suggestionId ? { ...s, total_votos: s.total_votos + 1 } : s
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error al votar:", err);
+    } finally {
+      setVotingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(suggestionId);
+        return next;
+      });
+    }
+  }
 
   const incidentsCount = incidents.length.toString();
   const suggestionsCount = popularSuggestions.length.toString();
@@ -587,14 +626,17 @@ export default function StudentDashboardHome({
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 card-clickable rounded-lg border-b border-[var(--color-border-light)] p-3"
+                      className="flex items-center gap-3 rounded-lg border-b border-[var(--color-border-light)] p-3"
                     >
-                      <div
+                      <button
+                        onClick={() => handleVote(item.id)}
+                        disabled={votingIds.has(item.id) || votedIds.has(item.id)}
                         className={
                           highlightVotes
-                            ? "flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600"
-                            : "flex min-w-[60px] flex-col items-center justify-center rounded-lg border badge-closed"
+                            ? "flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600 card-clickable disabled:opacity-50"
+                            : "flex min-w-[60px] flex-col items-center justify-center rounded-lg border badge-closed card-clickable disabled:opacity-50"
                         }
+                        aria-label={`Votar por ${item.titulo}`}
                       >
                         <svg
                           className="-rotate-90"
@@ -615,7 +657,7 @@ export default function StudentDashboardHome({
                               : "text-lg font-bold text-closed"
                           }
                         >
-                          {item.total_votos}
+                          {votingIds.has(item.id) ? "..." : item.total_votos}
                         </span>
                         <span
                           className={
@@ -626,7 +668,7 @@ export default function StudentDashboardHome({
                         >
                           VOTOS
                         </span>
-                      </div>
+                      </button>
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="font-semibold text-[var(--color-text-primary)]">{item.titulo}</span>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
