@@ -1,202 +1,333 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { restoreAuthSession } from "@/utils/auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 type Suggestion = {
   id: string;
+  estudiante_id: string;
   titulo: string;
   contenido: string;
-  estudiante_id: string;
   total_votos: number;
-  foto_url: string | null;
+  foto_url?: string | null;
   comentario_institucional: string | null;
-  etiquetas: string[];
   created_at: string;
+  etiquetas: string[];
 };
 
-function formatDate(iso: string): string {
+type SuggestionsResponse = {
+  total?: number;
+  items?: Suggestion[];
+};
+
+function formatDate(value: string) {
   try {
     return new Intl.DateTimeFormat("es-CO", {
       day: "2-digit",
       month: "short",
       year: "numeric",
-    }).format(new Date(iso));
+    }).format(new Date(value));
   } catch {
-    return iso;
+    return value;
   }
 }
 
-export default function AdminSugerenciasPage() {
-  const router = useRouter();
+function shortId(value: string) {
+  return value.slice(0, 8).toUpperCase();
+}
+
+function formatRelativeDateEs(value: string) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const days = Math.floor((Date.now() - parsed.getTime()) / 86_400_000);
+  if (days <= 0) return "Hoy";
+  if (days === 1) return "Ayer";
+  return `Hace ${days} días`;
+}
+
+export default function AdminSuggestionsPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [totalSuggestions, setTotalSuggestions] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    async function fetchSuggestions() {
+    let isMounted = true;
+
+    async function loadSuggestions() {
       try {
+        setLoading(true);
+        setError(null);
+
         const session = await restoreAuthSession();
         if (!session?.accessToken) {
-          setSuggestions([]);
-          return;
+          throw new Error("No se encontró una sesión activa.");
         }
 
-        const res = await fetch(`${API}/api/v1/suggestions/?order_by=fecha`, {
-          headers: { Authorization: `Bearer ${session.accessToken}` },
-        });
+        const response = await fetch(
+          `${API}/api/v1/suggestions/?page=1&limit=100&order_by=fecha`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          },
+        );
 
-        if (!res.ok) throw new Error("No se pudieron cargar las sugerencias.");
+        if (!response.ok) {
+          throw new Error("No se pudieron cargar las sugerencias.");
+        }
 
-        const data = await res.json();
-        const items: Suggestion[] = Array.isArray(data) ? data : data.items ?? [];
-        setSuggestions(items);
-      } catch {
-        setError("No se pudieron cargar las sugerencias.");
+        const data = (await response.json()) as SuggestionsResponse | Suggestion[];
+        const items = Array.isArray(data) ? data : data.items ?? [];
+
+        if (isMounted) {
+          setSuggestions(items);
+          setTotalSuggestions(Array.isArray(data) ? items.length : data.total ?? items.length);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "No se pudieron cargar las sugerencias.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
-    void fetchSuggestions();
+    void loadSuggestions();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return suggestions;
-
-    return suggestions.filter(
-      (suggestion) =>
-        suggestion.titulo.toLowerCase().includes(q) ||
-        suggestion.contenido.toLowerCase().includes(q) ||
-        suggestion.etiquetas.some((tag) => tag.toLowerCase().includes(q))
-    );
-  }, [search, suggestions]);
+  const totalVotes = useMemo(
+    () => suggestions.reduce((total, suggestion) => total + suggestion.total_votos, 0),
+    [suggestions],
+  );
+  const topSuggestions = useMemo(
+    () =>
+      [...suggestions]
+        .sort((a, b) => b.total_votos - a.total_votos)
+        .slice(0, 3),
+    [suggestions],
+  );
+  const latestSuggestion = suggestions[0];
+  const topVotes = topSuggestions[0]?.total_votos ?? 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-8 pt-0 sm:p-6 lg:px-8">
-      <header className="mb-6 sm:mb-8">
-        <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-          Sugerencias
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Revisa las sugerencias publicadas y responde institucionalmente cuando corresponda.
-        </p>
+    <div className="mx-auto max-w-7xl px-4 pb-6 pt-0 sm:p-6 lg:px-8">
+      <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+            Panel Administrador
+          </h1>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Sugerencias creadas por la comunidad estudiantil.
+          </p>
+        </div>
+        <span className="badge w-fit">Comunidad estudiantil</span>
       </header>
 
-      {error && (
-        <div className="alert-error mb-6" role="alert">
-          <p>{error}</p>
+      <section className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="card tech-stat-card">
+          <p className="stat-label">Sugerencias recibidas</p>
+          <p className="stat-value">{totalSuggestions}</p>
         </div>
-      )}
+        <div className="card tech-stat-card">
+          <p className="stat-label">Votos acumulados</p>
+          <p className="stat-value">{totalVotes}</p>
+        </div>
+        <div className="card tech-stat-card">
+          <p className="stat-label">Mayor votación</p>
+          <p className="stat-value">{topVotes}</p>
+        </div>
+      </section>
 
-      <div className="card mb-6" style={{ padding: "12px 16px" }}>
-        <label htmlFor="admin-suggestion-search" className="sr-only">
-          Buscar sugerencias
-        </label>
-        <input
-          id="admin-suggestion-search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar por titulo, contenido o etiqueta..."
-          className="w-full"
-        />
-      </div>
-
-      <div className="card">
-        <div className="card-stripe" />
-        <div className="card-body">
-          {loading ? (
-            <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">
-              Cargando sugerencias...
-            </p>
-          ) : filtered.length === 0 ? (
-            <div className="card-body-center">
-              <div className="icon-wrap-circle" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <p className="font-semibold text-[var(--color-text-primary)]">
-                Sin sugerencias
-              </p>
-              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                No hay sugerencias para mostrar con los filtros actuales.
-              </p>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="card min-h-[240px]">
+          <div className="border-b border-[var(--color-border-light)] px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+                Muro de sugerencias
+              </h2>
+              <span className="text-xs font-semibold uppercase text-[var(--color-primary)]">
+                Recientes
+              </span>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="bg-[var(--color-bg-muted)] text-xs font-semibold uppercase text-[var(--color-text-secondary)]">
-                    <th className="rounded-l-md px-3 py-2">Sugerencia</th>
-                    <th className="px-3 py-2">Etiquetas</th>
-                    <th className="px-3 py-2">Votos</th>
-                    <th className="px-3 py-2">Respuesta</th>
-                    <th className="px-3 py-2">Fecha</th>
-                    <th className="rounded-r-md px-3 py-2">Accion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((suggestion) => (
-                    <tr
+          </div>
+
+          <div className="p-3 sm:p-4">
+            {loading ? (
+              <div className="flex items-center gap-sm">
+                <span className="spinner spinner-dark" />
+                <p className="text-secondary">Cargando sugerencias...</p>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="alert-error">
+                <p>{error}</p>
+              </div>
+            ) : null}
+
+            {!loading && !error && suggestions.length === 0 ? (
+              <div className="card-body-center">
+                <p className="font-semibold text-[var(--color-text-primary)]">
+                  No hay sugerencias registradas.
+                </p>
+                <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                  Cuando los estudiantes creen sugerencias aparecerán aquí.
+                </p>
+              </div>
+            ) : null}
+
+            {!loading && !error && suggestions.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {suggestions.map((suggestion, index) => {
+                  const tags = suggestion.etiquetas ?? [];
+                  const highlightVotes = index < 2;
+
+                  return (
+                    <article
                       key={suggestion.id}
-                      className="border-b border-[var(--color-border-light)] last:border-0"
+                      className="card-clickable flex items-start gap-3 rounded-lg border border-[var(--color-border-light)] p-3"
                     >
-                      <td className="max-w-[280px] px-3 py-3">
-                        <p className="font-semibold text-[var(--color-text-primary)]">
-                          {suggestion.titulo}
-                        </p>
-                        <p className="mt-1 line-clamp-2 text-xs text-[var(--color-text-secondary)]">
+                      <div
+                        className={
+                          highlightVotes
+                            ? "flex min-w-[64px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600"
+                            : "flex min-w-[64px] flex-col items-center justify-center rounded-lg border border-[var(--color-closed-border)] bg-[var(--color-closed-bg)] px-2 py-1 text-[var(--color-closed)]"
+                        }
+                      >
+                        <svg
+                          className="-rotate-90"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span className="text-lg font-bold leading-none">
+                          {suggestion.total_votos}
+                        </span>
+                        <span className="mt-1 text-[10px] font-semibold uppercase">
+                          votos
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-bold uppercase text-[var(--color-primary)]">
+                              #{shortId(suggestion.id)}
+                            </p>
+                            <h3 className="mt-1 text-sm font-bold text-[var(--color-text-primary)] sm:text-base">
+                              {suggestion.titulo}
+                            </h3>
+                          </div>
+                          <span className="text-xs text-[var(--color-text-hint)]">
+                            {formatRelativeDateEs(suggestion.created_at)}
+                          </span>
+                        </div>
+
+                        <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
                           {suggestion.contenido}
                         </p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {suggestion.etiquetas.length > 0 ? (
-                            suggestion.etiquetas.slice(0, 2).map((tag) => (
-                              <span key={tag} className="badge">{tag}</span>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                          {tags.length > 0 ? (
+                            tags.slice(0, 3).map((tag) => (
+                              <span key={`${suggestion.id}-${tag}`} className="badge">
+                                {tag}
+                              </span>
                             ))
                           ) : (
-                            <span className="text-xs text-[var(--color-text-hint)]">Sin etiquetas</span>
+                            <span className="text-[var(--color-text-hint)]">
+                              Sin etiquetas
+                            </span>
                           )}
+                          <span className="text-[var(--color-text-hint)]">
+                            Estudiante #{shortId(suggestion.estudiante_id)}
+                          </span>
+                          <span className="text-[var(--color-text-hint)]">
+                            {formatDate(suggestion.created_at)}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-3 py-3 font-semibold text-[var(--color-primary)]">
-                        {suggestion.total_votos}
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          suggestion.comentario_institucional
-                            ? "bg-green-50 text-green-700"
-                            : "bg-orange-50 text-orange-700"
-                        }`}>
-                          {suggestion.comentario_institucional ? "Respondida" : "Pendiente"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-[var(--color-text-secondary)]">
-                        {formatDate(suggestion.created_at)}
-                      </td>
-                      <td className="px-3 py-3">
-                        <button
-                          type="button"
-                          className="btn-link !mt-0"
-                          onClick={() => router.push(`/dashboard/admin/sugerencia-detalle?id=${suggestion.id}`)}
-                        >
-                          Ver detalle
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+                        {suggestion.comentario_institucional ? (
+                          <div className="mt-3 rounded-md border border-[var(--color-border-light)] bg-[var(--color-bg-muted)] p-3 text-sm text-[var(--color-text-secondary)]">
+                            {suggestion.comentario_institucional}
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <aside className="card h-fit">
+          <div className="border-b border-[var(--color-border-light)] px-4 py-3 text-center">
+            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+              Sugerencias populares
+            </h2>
+          </div>
+          <div className="space-y-4 p-4 text-sm text-[var(--color-text-secondary)]">
+            <div className="rounded-lg border border-[var(--color-border-light)] bg-[var(--color-bg-muted)] p-3">
+              <p className="text-xs font-semibold uppercase text-[var(--color-text-hint)]">
+                Última publicación
+              </p>
+              <p className="mt-1 font-semibold text-[var(--color-text-primary)]">
+                {latestSuggestion ? latestSuggestion.titulo : "Sin datos"}
+              </p>
+              {latestSuggestion ? (
+                <p className="mt-1 text-xs">{formatRelativeDateEs(latestSuggestion.created_at)}</p>
+              ) : null}
             </div>
-          )}
-        </div>
+
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-[var(--color-text-hint)]">
+                Más votadas
+              </p>
+              <div className="flex flex-col gap-2">
+                {topSuggestions.length > 0 ? (
+                  topSuggestions.map((suggestion) => (
+                    <div
+                      key={`top-${suggestion.id}`}
+                      className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-border-light)] px-3 py-2"
+                    >
+                      <span className="min-w-0 truncate font-semibold text-[var(--color-text-primary)]">
+                        {suggestion.titulo}
+                      </span>
+                      <span className="badge badge-success">
+                        {suggestion.total_votos}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-md border border-[var(--color-border-light)] px-3 py-4 text-center text-xs">
+                    Aún no hay votos registrados.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

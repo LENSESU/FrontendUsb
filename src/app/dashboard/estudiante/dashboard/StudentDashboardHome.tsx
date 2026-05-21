@@ -33,14 +33,88 @@ type IncidentMock = {
   status: IncidentStatus;
 };
 
-type SuggestionSummary = {
+/** Elemento de sugerencia según el API (Application Programming Interface) de popularidad */
+type PopularSuggestionItem = {
   id: string;
   titulo: string;
-  estudiante_id: string;
   total_votos: number;
   etiquetas: string[];
   created_at: string;
 };
+
+/**
+ * Propósito: Datos de respaldo cuando el endpoint no devuelve ítems o falla la petición.
+ * Parámetros: ninguno.
+ * Retorno: lista fija equivalente al ejemplo acordado con el backend.
+ */
+function getFallbackPopularSuggestions(): PopularSuggestionItem[] {
+  return [
+    {
+      id: "3e2b6d85-eb48-4c9a-9a90-947700763558",
+      titulo: "PRUEBA",
+      total_votos: 8,
+      etiquetas: [],
+      created_at: "2026-05-13T04:03:14.140446",
+    },
+  ];
+}
+
+/**
+ * Propósito: Interpretar el JSON paginado de sugerencias y validar cada fila.
+ * Parámetros: `raw` — cuerpo parseado de la respuesta HTTP.
+ * Retorno: arreglo de sugerencias listas para la UI; vacío si el formato no es el esperado.
+ */
+function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
+  if (!raw || typeof raw !== "object") return [];
+  const root = raw as Record<string, unknown>;
+  const items = root.items;
+  if (!Array.isArray(items)) return [];
+
+  const result: PopularSuggestionItem[] = [];
+  for (const entry of items) {
+    if (!entry || typeof entry !== "object") continue;
+    const row = entry as Record<string, unknown>;
+    const id = typeof row.id === "string" ? row.id : "";
+    const titulo = typeof row.titulo === "string" ? row.titulo : "";
+    const rawVotes = row.total_votos;
+    const total_votos =
+      typeof rawVotes === "number" && Number.isFinite(rawVotes)
+        ? rawVotes
+        : typeof rawVotes === "string"
+          ? Number.parseInt(rawVotes, 10)
+          : 0;
+    const created_at = typeof row.created_at === "string" ? row.created_at : "";
+    const etiquetas: string[] = Array.isArray(row.etiquetas)
+      ? row.etiquetas.filter((tag): tag is string => typeof tag === "string")
+      : [];
+    if (!id || !titulo) continue;
+    result.push({
+      id,
+      titulo,
+      total_votos: Number.isFinite(total_votos) ? total_votos : 0,
+      etiquetas,
+      created_at,
+    });
+  }
+  return result;
+}
+
+/**
+ * Propósito: Mostrar antigüedad relativa en español para la fecha de creación ISO.
+ * Parámetros: `iso` — fecha en formato ISO 8601.
+ * Retorno: texto breve ("Hoy", "Ayer", "Hace N días") o cadena vacía si no es válida.
+ */
+function formatRelativeDateEs(iso: string): string {
+  if (!iso) return "";
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const now = Date.now();
+  const diffMs = now - parsed.getTime();
+  const days = Math.floor(diffMs / 86_400_000);
+  if (days <= 0) return "Hoy";
+  if (days === 1) return "Ayer";
+  return `Hace ${days} días`;
+}
 
 function getFirstName(email: string): string {
   return email.split("@")[0];
@@ -202,6 +276,10 @@ export default function StudentDashboardHome({
   const router = useRouter();
   const [loadingIncidents, setLoadingIncidents] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [popularSuggestions, setPopularSuggestions] = useState<PopularSuggestionItem[]>([]);
+
+  const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchData() {
@@ -286,8 +364,85 @@ export default function StudentDashboardHome({
     fetchData();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPopularSuggestions() {
+      setLoadingSuggestions(true);
+      const fallback = getFallbackPopularSuggestions();
+
+      try {
+        const session = await restoreAuthSession();
+        if (!session?.accessToken) {
+          if (!cancelled) setPopularSuggestions(fallback);
+          return;
+        }
+
+        const res = await fetch(`${API}/api/v1/suggestions/`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+
+        const raw: unknown = await res.json().catch(() => null);
+        const parsed = parsePopularSuggestionsPayload(raw);
+        const sorted = [...parsed].sort((a, b) => b.total_votos - a.total_votos).slice(0, 5);
+
+        if (!cancelled) {
+          setPopularSuggestions(sorted.length > 0 ? sorted : fallback);
+        }
+      } catch {
+        if (!cancelled) setPopularSuggestions(fallback);
+      } finally {
+        if (!cancelled) setLoadingSuggestions(false);
+      }
+    }
+
+    void loadPopularSuggestions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleVote(suggestionId: string) {
+    if (votingIds.has(suggestionId) || votedIds.has(suggestionId)) return;
+
+    setVotingIds((prev) => new Set(prev).add(suggestionId));
+
+    try {
+      const session = await restoreAuthSession();
+      if (!session?.accessToken) return;
+
+      const res = await fetch(`${API}/api/v1/suggestions/${suggestionId}/vote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (res.status === 201) {
+        setVotedIds((prev) => new Set(prev).add(suggestionId));
+        setPopularSuggestions((prev) =>
+          prev.map((s) =>
+            s.id === suggestionId ? { ...s, total_votos: s.total_votos + 1 } : s
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error al votar:", err);
+    } finally {
+      setVotingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(suggestionId);
+        return next;
+      });
+    }
+  }
+
   const incidentsCount = incidents.length.toString();
-  const suggestionsCount = mySuggestionsCount.toString();
+  const suggestionsCount = popularSuggestions.length.toString();
 
   if (!auth) return <div>cargando...</div>;
 
@@ -497,98 +652,76 @@ export default function StudentDashboardHome({
                 <SkeletonSuggestion />
                 <SkeletonSuggestion />
               </div>
-            ) : popularSuggestions.length === 0 ? (
-              <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">
-                No hay sugerencias populares por el momento.
-              </p>
             ) : (
               <div className="flex flex-col gap-3">
-                {popularSuggestions.map((suggestion, index) => (
-                  <div
-                    key={suggestion.id}
-                    className="flex items-center gap-3 card-clickable rounded-lg border-b border-[var(--color-border-light)] p-3"
-                    onClick={() => router.push("/dashboard/estudiante/sugerencias")}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        router.push("/dashboard/estudiante/sugerencias");
-                      }
-                    }}
-                  >
-                    <div className={`flex min-w-[60px] flex-col items-center justify-center rounded-lg border px-2 py-1 ${
-                      index === 0
-                        ? "border-orange-300 bg-orange-50 text-orange-600"
-                        : "badge-closed"
-                    }`}>
-                      <svg className="-rotate-90" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                      <span className={`text-lg font-bold ${index === 0 ? "text-orange-600" : "text-closed"}`}>
-                        {suggestion.total_votos}
-                      </span>
-                      <span className={`text-[10px] font-semibold ${index === 0 ? "text-orange-500" : "text-closed"}`}>
-                        VOTOS
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-semibold text-[var(--color-text-primary)]">
-                        {suggestion.titulo}
-                      </span>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                        {suggestion.etiquetas.slice(0, 1).map((tag) => (
-                          <span key={tag} className="badge">{tag}</span>
-                        ))}
-                        <span className="text-[var(--color-text-hint)]">
-                          {formatDateRelative(suggestion.created_at)}
+                {popularSuggestions.map((item, index) => {
+                  const highlightVotes = index % 2 === 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 rounded-lg border-b border-[var(--color-border-light)] p-3"
+                    >
+                      <button
+                        onClick={() => handleVote(item.id)}
+                        disabled={votingIds.has(item.id) || votedIds.has(item.id)}
+                        className={
+                          highlightVotes
+                            ? "flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600 card-clickable disabled:opacity-50"
+                            : "flex min-w-[60px] flex-col items-center justify-center rounded-lg border badge-closed card-clickable disabled:opacity-50"
+                        }
+                        aria-label={`Votar por ${item.titulo}`}
+                      >
+                        <svg
+                          className="-rotate-90"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span
+                          className={
+                            highlightVotes
+                              ? "text-lg font-bold text-orange-600"
+                              : "text-lg font-bold text-closed"
+                          }
+                        >
+                          {votingIds.has(item.id) ? "..." : item.total_votos}
                         </span>
+                        <span
+                          className={
+                            highlightVotes
+                              ? "text-[10px] font-semibold text-orange-500"
+                              : "text-[10px] font-semibold text-closed"
+                          }
+                        >
+                          VOTOS
+                        </span>
+                      </button>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="font-semibold text-[var(--color-text-primary)]">{item.titulo}</span>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                          {item.etiquetas.length > 0 ? (
+                            item.etiquetas.slice(0, 2).map((tag) => (
+                              <span key={`${item.id}-${tag}`} className="badge">
+                                {tag}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[var(--color-text-hint)]">Sin etiquetas</span>
+                          )}
+                          <span className="text-[var(--color-text-hint)]">
+                            {formatRelativeDateEs(item.created_at)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {false && (
-                  <>
-                {/* Item 1 */}
-                <div className="flex items-center gap-3 card-clickable rounded-lg border-b border-[var(--color-border-light)] p-3">
-                  <div className="flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600">
-                    <svg className="-rotate-90" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span className="text-lg font-bold text-orange-600">124</span>
-                    <span className="text-[10px] font-semibold text-orange-500">VOTOS</span>
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="font-semibold text-[var(--color-text-primary)]">
-                      Más puntos de reciclaje en bloques de clases
-                    </span>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="badge">Sostenibilidad</span>
-                      <span className="text-[var(--color-text-hint)]">Hace 3 días</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Item 2 */}
-                <div className="flex items-center gap-3 card-clickable rounded-lg border-b border-[var(--color-border-light)] p-3">
-                  <div className="flex min-w-[60px] flex-col items-center justify-center rounded-lg border badge-closed">
-                    <svg className="-rotate-90" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span className="text-lg font-bold text-closed">98</span>
-                    <span className="text-[10px] font-semibold text-closed">VOTOS</span>
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="font-semibold text-[var(--color-text-primary)]">
-                      Ampliar horario de biblioteca en parciales
-                    </span>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="badge">Bienestar</span>
-                      <span className="text-[var(--color-text-hint)]">Hace 5 días</span>
-                    </div>
-                  </div>
-                </div>
-                  </>
-                )}
+                  );
+                })}
               </div>
             )}
           </div>
