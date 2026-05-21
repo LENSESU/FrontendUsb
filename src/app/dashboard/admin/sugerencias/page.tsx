@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { restoreAuthSession } from "@/utils/auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
+type OrderBy = "fecha" | "popularidad";
 
 type Suggestion = {
   id: string;
@@ -54,6 +56,12 @@ export default function AdminSuggestionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [orderBy, setOrderBy] = useState<OrderBy>("fecha");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  // Universo de etiquetas conocidas (se llena en la primera carga sin filtros).
+  const [knownTags, setKnownTags] = useState<string[]>([]);
+  const tagsInitialized = useRef(false);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -67,8 +75,16 @@ export default function AdminSuggestionsPage() {
           throw new Error("No se encontró una sesión activa.");
         }
 
+        const params = new URLSearchParams();
+        params.set("page", "1");
+        params.set("limit", "100");
+        params.set("order_by", orderBy);
+        for (const tag of selectedTags) {
+          params.append("tags", tag);
+        }
+
         const response = await fetch(
-          `${API}/api/v1/suggestions/?page=1&limit=100&order_by=fecha`,
+          `${API}/api/v1/suggestions/?${params.toString()}`,
           {
             headers: {
               Authorization: `Bearer ${session.accessToken}`,
@@ -86,6 +102,16 @@ export default function AdminSuggestionsPage() {
         if (isMounted) {
           setSuggestions(items);
           setTotalSuggestions(Array.isArray(data) ? items.length : data.total ?? items.length);
+
+          // Sembrar el universo de etiquetas SOLO la primera vez (sin filtros aplicados)
+          // para que los chips no se vacíen al filtrar.
+          if (!tagsInitialized.current && selectedTags.length === 0) {
+            const unique = Array.from(
+              new Set(items.flatMap((s) => s.etiquetas ?? [])),
+            ).sort((a, b) => a.localeCompare(b, "es"));
+            setKnownTags(unique);
+            tagsInitialized.current = true;
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -107,7 +133,7 @@ export default function AdminSuggestionsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [orderBy, selectedTags]);
 
   const totalVotes = useMemo(
     () => suggestions.reduce((total, suggestion) => total + suggestion.total_votos, 0),
@@ -122,6 +148,19 @@ export default function AdminSuggestionsPage() {
   );
   const latestSuggestion = suggestions[0];
   const topVotes = topSuggestions[0]?.total_votos ?? 0;
+
+  function toggleTag(tag: string) {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  }
+
+  function clearTags() {
+    setSelectedTags([]);
+  }
+
+  const hasActiveFilters = selectedTags.length > 0 || orderBy !== "fecha";
+  const tabLabel = orderBy === "popularidad" ? "Más votadas" : "Más recientes";
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-6 pt-0 sm:p-6 lg:px-8">
@@ -160,8 +199,85 @@ export default function AdminSuggestionsPage() {
                 Muro de sugerencias
               </h2>
               <span className="text-xs font-semibold uppercase text-[var(--color-primary)]">
-                Recientes
+                {tabLabel}
               </span>
+            </div>
+
+            {/* Barra de filtros */}
+            <div className="mt-3 flex flex-col gap-3">
+              {/* Tabs de ordenamiento */}
+              <div
+                role="tablist"
+                aria-label="Ordenar sugerencias"
+                className="inline-flex w-fit gap-1 rounded-lg border border-[var(--color-border-light)] bg-[var(--color-bg-muted)] p-1"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={orderBy === "fecha"}
+                  onClick={() => setOrderBy("fecha")}
+                  className={
+                    orderBy === "fecha"
+                      ? "rounded-md bg-[var(--color-primary)] px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition"
+                      : "rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"
+                  }
+                >
+                  Más recientes
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={orderBy === "popularidad"}
+                  onClick={() => setOrderBy("popularidad")}
+                  className={
+                    orderBy === "popularidad"
+                      ? "rounded-md bg-[var(--color-primary)] px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition"
+                      : "rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"
+                  }
+                >
+                  Más votadas
+                </button>
+              </div>
+
+              {/* Chips de etiquetas */}
+              {knownTags.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase text-[var(--color-text-hint)]">
+                      Filtrar por etiquetas
+                    </p>
+                    {selectedTags.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={clearTags}
+                        className="text-xs font-semibold text-[var(--color-primary)] hover:underline"
+                      >
+                        Limpiar ({selectedTags.length})
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {knownTags.map((tag) => {
+                      const active = selectedTags.includes(tag);
+                      return (
+                        <button
+                          key={`tag-${tag}`}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          aria-pressed={active}
+                          className={
+                            active
+                              ? "rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-3 py-1 text-xs font-semibold text-white transition"
+                              : "rounded-full border border-[var(--color-border-light)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -182,10 +298,14 @@ export default function AdminSuggestionsPage() {
             {!loading && !error && suggestions.length === 0 ? (
               <div className="card-body-center">
                 <p className="font-semibold text-[var(--color-text-primary)]">
-                  No hay sugerencias registradas.
+                  {hasActiveFilters
+                    ? "Ninguna sugerencia coincide con los filtros."
+                    : "No hay sugerencias registradas."}
                 </p>
                 <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                  Cuando los estudiantes creen sugerencias aparecerán aquí.
+                  {hasActiveFilters
+                    ? "Prueba quitar etiquetas o cambiar el orden."
+                    : "Cuando los estudiantes creen sugerencias aparecerán aquí."}
                 </p>
               </div>
             ) : null}
