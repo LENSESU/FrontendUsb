@@ -5,7 +5,7 @@ import { AuthData, restoreAuthSession } from "@/utils/auth";
 import { useRouter } from "next/navigation";
 import { IncidentStatusBadge } from "@/components/IncidentStatusBadge";
 import { IncidentStatus } from "@/utils/incidentStatus";
-import { useEffect, useState } from "react";
+import { JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -33,19 +33,18 @@ type IncidentMock = {
   status: IncidentStatus;
 };
 
-/** Elemento de sugerencia según el API (Application Programming Interface) de popularidad */
+/** Elemento de sugerencia según el API de popularidad */
 type PopularSuggestionItem = {
   id: string;
   titulo: string;
   total_votos: number;
   etiquetas: string[];
   created_at: string;
+  estudiante_id?: string;
 };
 
 /**
- * Propósito: Datos de respaldo cuando el endpoint no devuelve ítems o falla la petición.
- * Parámetros: ninguno.
- * Retorno: lista fija equivalente al ejemplo acordado con el backend.
+ * Datos de respaldo cuando el endpoint no devuelve ítems o falla la petición.
  */
 function getFallbackPopularSuggestions(): PopularSuggestionItem[] {
   return [
@@ -60,9 +59,7 @@ function getFallbackPopularSuggestions(): PopularSuggestionItem[] {
 }
 
 /**
- * Propósito: Interpretar el JSON paginado de sugerencias y validar cada fila.
- * Parámetros: `raw` — cuerpo parseado de la respuesta HTTP.
- * Retorno: arreglo de sugerencias listas para la UI; vacío si el formato no es el esperado.
+ * Interpreta el JSON paginado de sugerencias y valida cada fila.
  */
 function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
   if (!raw || typeof raw !== "object") return [];
@@ -84,6 +81,7 @@ function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
           ? Number.parseInt(rawVotes, 10)
           : 0;
     const created_at = typeof row.created_at === "string" ? row.created_at : "";
+    const estudiante_id = typeof row.estudiante_id === "string" ? row.estudiante_id : undefined;
     const etiquetas: string[] = Array.isArray(row.etiquetas)
       ? row.etiquetas.filter((tag): tag is string => typeof tag === "string")
       : [];
@@ -94,15 +92,14 @@ function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
       total_votos: Number.isFinite(total_votos) ? total_votos : 0,
       etiquetas,
       created_at,
+      estudiante_id,
     });
   }
   return result;
 }
 
 /**
- * Propósito: Mostrar antigüedad relativa en español para la fecha de creación ISO.
- * Parámetros: `iso` — fecha en formato ISO 8601.
- * Retorno: texto breve ("Hoy", "Ayer", "Hace N días") o cadena vacía si no es válida.
+ * Muestra antigüedad relativa en español para la fecha de creación ISO.
  */
 function formatRelativeDateEs(iso: string): string {
   if (!iso) return "";
@@ -256,20 +253,20 @@ export default function StudentDashboardHome({
   isLoggingOut,
 }: Props) {
   const [incidents, setIncidents] = useState<IncidentMock[]>([]);
+  const [popularSuggestions, setPopularSuggestions] = useState<PopularSuggestionItem[]>([]);
+  const [mySuggestionsCount, setMySuggestionsCount] = useState(0);
   const router = useRouter();
   const [loadingIncidents, setLoadingIncidents] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
-  const [popularSuggestions, setPopularSuggestions] = useState<PopularSuggestionItem[]>([]);
 
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
 
+  // ── Fetch incidentes del estudiante ──
   useEffect(() => {
-    async function fetchData() {
+    async function fetchIncidents() {
       try {
         const session = await restoreAuthSession();
-        console.log("TOKEN:", session?.accessToken ?? "❌ NULL");
-
         if (!session?.accessToken) return;
 
         const token = session.accessToken;
@@ -322,15 +319,16 @@ export default function StudentDashboardHome({
 
         setIncidents(mapped);
       } catch (err) {
-        console.error(err);
+        console.error("Error cargando incidentes:", err);
       } finally {
         setLoadingIncidents(false);
       }
     }
 
-    fetchData();
+    void fetchIncidents();
   }, []);
 
+  // ── Fetch sugerencias populares y conteo propio ──
   useEffect(() => {
     let cancelled = false;
 
@@ -341,9 +339,14 @@ export default function StudentDashboardHome({
       try {
         const session = await restoreAuthSession();
         if (!session?.accessToken) {
-          if (!cancelled) setPopularSuggestions(fallback);
+          if (!cancelled) {
+            setPopularSuggestions(fallback);
+            setMySuggestionsCount(0);
+          }
           return;
         }
+
+        const userId = getUserIdFromToken(session.accessToken);
 
         const res = await fetch(`${API}/api/v1/suggestions/`, {
           headers: {
@@ -354,13 +357,23 @@ export default function StudentDashboardHome({
 
         const raw: unknown = await res.json().catch(() => null);
         const parsed = parsePopularSuggestionsPayload(raw);
+
+        // Conteo de sugerencias propias del usuario
+        const myCount = userId
+          ? parsed.filter((s) => s.estudiante_id === userId).length
+          : 0;
+
         const sorted = [...parsed].sort((a, b) => b.total_votos - a.total_votos).slice(0, 5);
 
         if (!cancelled) {
           setPopularSuggestions(sorted.length > 0 ? sorted : fallback);
+          setMySuggestionsCount(myCount);
         }
       } catch {
-        if (!cancelled) setPopularSuggestions(fallback);
+        if (!cancelled) {
+          setPopularSuggestions(fallback);
+          setMySuggestionsCount(0);
+        }
       } finally {
         if (!cancelled) setLoadingSuggestions(false);
       }
@@ -408,9 +421,6 @@ export default function StudentDashboardHome({
     }
   }
 
-  const incidentsCount = incidents.length.toString();
-  const suggestionsCount = popularSuggestions.length.toString();
-
   if (!auth) return <div>cargando...</div>;
 
   return (
@@ -419,7 +429,7 @@ export default function StudentDashboardHome({
       {/* ── Header ── */}
       <header className="mb-6 sm:mb-8">
 
-        {/* Mobile: franja de saludo + FAB (el topbar con hamburguesa ya viene del layout) */}
+        {/* Mobile: franja de saludo + FAB */}
         <div className="-mx-4 mb-4 md:hidden">
           <div className="bg-[var(--color-bg-muted)] px-4 py-4">
             <div className="flex items-center justify-between gap-3">
@@ -470,16 +480,16 @@ export default function StudentDashboardHome({
         <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-4 lg:gap-6">
           {loadingIncidents ? <SkeletonStatCard /> : (
             <StatSummaryCard
-              value={incidentsCount}
+              value={String(incidents.length)}
               title="Mis Incidentes"
               subtitle="+1 esta semana"
             />
           )}
           {loadingSuggestions ? <SkeletonStatCard /> : (
             <StatSummaryCard
-              value={suggestionsCount}
+              value={String(mySuggestionsCount)}
               title="Mis Sugerencias"
-              subtitle="Activos ahora"
+              subtitle="Publicadas por ti"
             />
           )}
         </div>
@@ -608,10 +618,16 @@ export default function StudentDashboardHome({
 
         {/* Sugerencias populares */}
         <section className="card min-h-[200px] lg:col-span-1">
-          <div className="border-b border-[var(--color-border-light)] px-4 py-3 text-center">
+          <div className="flex items-center justify-between border-b border-[var(--color-border-light)] px-4 py-3">
             <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
               Sugerencias Populares
             </h2>
+            <Link
+              href="/dashboard/estudiante/sugerencias"
+              className="btn-link !mt-0 inline-flex !w-auto shrink-0 items-center gap-1 text-sm font-semibold"
+            >
+              + Nueva
+            </Link>
           </div>
           <div className="p-3 text-sm text-[var(--color-text-secondary)] sm:p-4">
             {loadingSuggestions ? (
