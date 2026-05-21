@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { restoreAuthSession } from "@/utils/auth";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -49,6 +50,7 @@ function formatRelativeDateEs(value: string) {
 }
 
 export default function AdminSuggestionsPage() {
+  const router = useRouter();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [totalSuggestions, setTotalSuggestions] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -69,16 +71,10 @@ export default function AdminSuggestionsPage() {
 
         const response = await fetch(
           `${API}/api/v1/suggestions/?page=1&limit=100&order_by=fecha`,
-          {
-            headers: {
-              Authorization: `Bearer ${session.accessToken}`,
-            },
-          },
+          { headers: { Authorization: `Bearer ${session.accessToken}` } },
         );
 
-        if (!response.ok) {
-          throw new Error("No se pudieron cargar las sugerencias.");
-        }
+        if (!response.ok) throw new Error("No se pudieron cargar las sugerencias.");
 
         const data = (await response.json()) as SuggestionsResponse | Suggestion[];
         const items = Array.isArray(data) ? data : data.items ?? [];
@@ -89,35 +85,23 @@ export default function AdminSuggestionsPage() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "No se pudieron cargar las sugerencias.",
-          );
+          setError(err instanceof Error ? err.message : "No se pudieron cargar las sugerencias.");
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
     void loadSuggestions();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const totalVotes = useMemo(
-    () => suggestions.reduce((total, suggestion) => total + suggestion.total_votos, 0),
+    () => suggestions.reduce((total, s) => total + s.total_votos, 0),
     [suggestions],
   );
   const topSuggestions = useMemo(
-    () =>
-      [...suggestions]
-        .sort((a, b) => b.total_votos - a.total_votos)
-        .slice(0, 3),
+    () => [...suggestions].sort((a, b) => b.total_votos - a.total_votos).slice(0, 3),
     [suggestions],
   );
   const latestSuggestion = suggestions[0];
@@ -166,20 +150,16 @@ export default function AdminSuggestionsPage() {
           </div>
 
           <div className="p-3 sm:p-4">
-            {loading ? (
-              <div className="flex items-center gap-sm">
+            {loading && (
+              <div className="flex items-center gap-2">
                 <span className="spinner spinner-dark" />
                 <p className="text-secondary">Cargando sugerencias...</p>
               </div>
-            ) : null}
+            )}
 
-            {error ? (
-              <div className="alert-error">
-                <p>{error}</p>
-              </div>
-            ) : null}
+            {error && <div className="alert-error"><p>{error}</p></div>}
 
-            {!loading && !error && suggestions.length === 0 ? (
+            {!loading && !error && suggestions.length === 0 && (
               <div className="card-body-center">
                 <p className="font-semibold text-[var(--color-text-primary)]">
                   No hay sugerencias registradas.
@@ -188,9 +168,9 @@ export default function AdminSuggestionsPage() {
                   Cuando los estudiantes creen sugerencias aparecerán aquí.
                 </p>
               </div>
-            ) : null}
+            )}
 
-            {!loading && !error && suggestions.length > 0 ? (
+            {!loading && !error && suggestions.length > 0 && (
               <div className="flex flex-col gap-3">
                 {suggestions.map((suggestion, index) => {
                   const tags = suggestion.etiquetas ?? [];
@@ -199,7 +179,16 @@ export default function AdminSuggestionsPage() {
                   return (
                     <article
                       key={suggestion.id}
-                      className="card-clickable flex items-start gap-3 rounded-lg border border-[var(--color-border-light)] p-3"
+                      className="card-clickable flex items-start gap-3 rounded-lg border border-[var(--color-border-light)] p-3 cursor-pointer"
+                      onClick={() =>
+                        router.push(`/dashboard/admin/sugerencia-detalle?id=${suggestion.id}`)
+                      }
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ")
+                          router.push(`/dashboard/admin/sugerencia-detalle?id=${suggestion.id}`);
+                      }}
                     >
                       <div
                         className={
@@ -208,24 +197,12 @@ export default function AdminSuggestionsPage() {
                             : "flex min-w-[64px] flex-col items-center justify-center rounded-lg border border-[var(--color-closed-border)] bg-[var(--color-closed-bg)] px-2 py-1 text-[var(--color-closed)]"
                         }
                       >
-                        <svg
-                          className="-rotate-90"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          aria-hidden="true"
-                        >
+                        <svg className="-rotate-90" width="18" height="18" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
-                        <span className="text-lg font-bold leading-none">
-                          {suggestion.total_votos}
-                        </span>
-                        <span className="mt-1 text-[10px] font-semibold uppercase">
-                          votos
-                        </span>
+                        <span className="text-lg font-bold leading-none">{suggestion.total_votos}</span>
+                        <span className="mt-1 text-[10px] font-semibold uppercase">votos</span>
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -250,14 +227,10 @@ export default function AdminSuggestionsPage() {
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                           {tags.length > 0 ? (
                             tags.slice(0, 3).map((tag) => (
-                              <span key={`${suggestion.id}-${tag}`} className="badge">
-                                {tag}
-                              </span>
+                              <span key={`${suggestion.id}-${tag}`} className="badge">{tag}</span>
                             ))
                           ) : (
-                            <span className="text-[var(--color-text-hint)]">
-                              Sin etiquetas
-                            </span>
+                            <span className="text-[var(--color-text-hint)]">Sin etiquetas</span>
                           )}
                           <span className="text-[var(--color-text-hint)]">
                             Estudiante #{shortId(suggestion.estudiante_id)}
@@ -267,17 +240,25 @@ export default function AdminSuggestionsPage() {
                           </span>
                         </div>
 
-                        {suggestion.comentario_institucional ? (
-                          <div className="mt-3 rounded-md border border-[var(--color-border-light)] bg-[var(--color-bg-muted)] p-3 text-sm text-[var(--color-text-secondary)]">
-                            {suggestion.comentario_institucional}
+                        {suggestion.comentario_institucional && (
+                          <div className="mt-3 flex items-center gap-1.5">
+                            <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-[var(--color-primary)] text-white flex-shrink-0">
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                              </svg>
+                            </span>
+                            <span className="text-xs font-semibold text-[var(--color-primary)]">
+                              Respondida
+                            </span>
                           </div>
-                        ) : null}
+                        )}
                       </div>
                     </article>
                   );
                 })}
               </div>
-            ) : null}
+            )}
           </div>
         </section>
 
@@ -295,9 +276,9 @@ export default function AdminSuggestionsPage() {
               <p className="mt-1 font-semibold text-[var(--color-text-primary)]">
                 {latestSuggestion ? latestSuggestion.titulo : "Sin datos"}
               </p>
-              {latestSuggestion ? (
+              {latestSuggestion && (
                 <p className="mt-1 text-xs">{formatRelativeDateEs(latestSuggestion.created_at)}</p>
-              ) : null}
+              )}
             </div>
 
             <div>
@@ -309,14 +290,15 @@ export default function AdminSuggestionsPage() {
                   topSuggestions.map((suggestion) => (
                     <div
                       key={`top-${suggestion.id}`}
-                      className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-border-light)] px-3 py-2"
+                      className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-border-light)] px-3 py-2 cursor-pointer card-clickable"
+                      onClick={() =>
+                        router.push(`/dashboard/admin/sugerencia-detalle?id=${suggestion.id}`)
+                      }
                     >
                       <span className="min-w-0 truncate font-semibold text-[var(--color-text-primary)]">
                         {suggestion.titulo}
                       </span>
-                      <span className="badge badge-success">
-                        {suggestion.total_votos}
-                      </span>
+                      <span className="badge badge-success">{suggestion.total_votos}</span>
                     </div>
                   ))
                 ) : (
