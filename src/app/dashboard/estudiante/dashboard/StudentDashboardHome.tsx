@@ -33,8 +33,32 @@ type IncidentMock = {
   status: IncidentStatus;
 };
 
+type SuggestionSummary = {
+  id: string;
+  titulo: string;
+  estudiante_id: string;
+  total_votos: number;
+  etiquetas: string[];
+  created_at: string;
+};
+
 function getFirstName(email: string): string {
   return email.split("@")[0];
+}
+
+function formatDateRelative(iso: string): string {
+  try {
+    const diff = Date.now() - new Date(iso).getTime();
+    const days = Math.floor(diff / 86_400_000);
+    if (days === 0) return "Hoy";
+    if (days === 1) return "Hace 1 dia";
+    if (days < 30) return `Hace ${days} dias`;
+    const months = Math.floor(days / 30);
+    if (months === 1) return "Hace 1 mes";
+    return `Hace ${months} meses`;
+  } catch {
+    return iso;
+  }
 }
 
 /* ── Skeleton components ── */
@@ -173,6 +197,8 @@ export default function StudentDashboardHome({
   isLoggingOut,
 }: Props) {
   const [incidents, setIncidents] = useState<IncidentMock[]>([]);
+  const [popularSuggestions, setPopularSuggestions] = useState<SuggestionSummary[]>([]);
+  const [mySuggestionsCount, setMySuggestionsCount] = useState(0);
   const router = useRouter();
   const [loadingIncidents, setLoadingIncidents] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
@@ -188,23 +214,30 @@ export default function StudentDashboardHome({
         const token = session.accessToken;
         const userId = getUserIdFromToken(token);
 
-        const [incRes, catRes] = await Promise.all([
+        const [incRes, catRes, suggestionsRes] = await Promise.all([
           fetch(`${API}/api/v1/incidents/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API}/api/v1/categories/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch(`${API}/api/v1/suggestions/?order_by=popularidad`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         const incidentsData = await incRes.json();
         const categoriesData = await catRes.json();
+        const suggestionsData = await suggestionsRes.json();
 
         const incidentsArray = Array.isArray(incidentsData)
           ? incidentsData
           : incidentsData.items || [];
 
         const categoriesArray = categoriesData.items || [];
+        const suggestionsArray: SuggestionSummary[] = Array.isArray(suggestionsData)
+          ? suggestionsData
+          : suggestionsData.items || [];
 
         const categoryMap: Record<string, string> = {};
         categoriesArray.forEach((cat: any) => {
@@ -234,23 +267,27 @@ export default function StudentDashboardHome({
           }));
 
         setIncidents(mapped);
+        setMySuggestionsCount(
+          suggestionsArray.filter((suggestion) => suggestion.estudiante_id === userId).length
+        );
+        setPopularSuggestions(
+          [...suggestionsArray]
+            .sort((a, b) => b.total_votos - a.total_votos)
+            .slice(0, 3)
+        );
       } catch (err) {
         console.error(err);
       } finally {
         setLoadingIncidents(false);
+        setLoadingSuggestions(false);
       }
     }
 
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoadingSuggestions(false), 1500);
-    return () => clearTimeout(t);
-  }, []);
-
   const incidentsCount = incidents.length.toString();
-  const suggestionsCount = "5";
+  const suggestionsCount = mySuggestionsCount.toString();
 
   if (!auth) return <div>cargando...</div>;
 
@@ -460,12 +497,57 @@ export default function StudentDashboardHome({
                 <SkeletonSuggestion />
                 <SkeletonSuggestion />
               </div>
-            ) : false ? (
+            ) : popularSuggestions.length === 0 ? (
               <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">
                 No hay sugerencias populares por el momento.
               </p>
             ) : (
               <div className="flex flex-col gap-3">
+                {popularSuggestions.map((suggestion, index) => (
+                  <div
+                    key={suggestion.id}
+                    className="flex items-center gap-3 card-clickable rounded-lg border-b border-[var(--color-border-light)] p-3"
+                    onClick={() => router.push("/dashboard/estudiante/sugerencias")}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        router.push("/dashboard/estudiante/sugerencias");
+                      }
+                    }}
+                  >
+                    <div className={`flex min-w-[60px] flex-col items-center justify-center rounded-lg border px-2 py-1 ${
+                      index === 0
+                        ? "border-orange-300 bg-orange-50 text-orange-600"
+                        : "badge-closed"
+                    }`}>
+                      <svg className="-rotate-90" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span className={`text-lg font-bold ${index === 0 ? "text-orange-600" : "text-closed"}`}>
+                        {suggestion.total_votos}
+                      </span>
+                      <span className={`text-[10px] font-semibold ${index === 0 ? "text-orange-500" : "text-closed"}`}>
+                        VOTOS
+                      </span>
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="font-semibold text-[var(--color-text-primary)]">
+                        {suggestion.titulo}
+                      </span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                        {suggestion.etiquetas.slice(0, 1).map((tag) => (
+                          <span key={tag} className="badge">{tag}</span>
+                        ))}
+                        <span className="text-[var(--color-text-hint)]">
+                          {formatDateRelative(suggestion.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {false && (
+                  <>
                 {/* Item 1 */}
                 <div className="flex items-center gap-3 card-clickable rounded-lg border-b border-[var(--color-border-light)] p-3">
                   <div className="flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600">
@@ -505,6 +587,8 @@ export default function StudentDashboardHome({
                     </div>
                   </div>
                 </div>
+                  </>
+                )}
               </div>
             )}
           </div>
