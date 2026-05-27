@@ -18,8 +18,8 @@ const CAMPUS_ZONES = [
 	{ value: "Otros", label: "Otros" },
 ];
 
-/** Coordenadas de la Universidad San Buenaventura Cali */
-const USB_CENTER = { lat: 3.3598, lng: -76.5225 };
+/** Coordenadas por defecto solicitadas para el centro del mapa */
+const USB_CENTER = { lat: 3.3453045315865504, lng: -76.5440884444818 };
 
 function getMapUrl(latitude: number, longitude: number): string {
 	return `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.002},${latitude - 0.002},${longitude + 0.002},${latitude + 0.002}&layer=mapnik&marker=${latitude},${longitude}`;

@@ -6,12 +6,12 @@ import {
   restoreAuthSession,
   normalizeRole,
   getDashboardPathByRole,
-  clearAuth,
+  logoutSession,
   type AuthData,
 } from "@/utils/auth";
-import AdminSidebar from "@/components/AdminSidebar";
+import TechnicianSidebar from "@/components/TechnicianSidebar";
 
-export default function AdminDashboardLayout({
+export default function TecnicoDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -37,7 +37,7 @@ export default function AdminDashboardLayout({
         }
 
         const role = normalizeRole(session.role);
-        if (role !== "administrator") {
+        if (role !== "technician") {
           router.replace(getDashboardPathByRole(session.role));
           return;
         }
@@ -45,13 +45,16 @@ export default function AdminDashboardLayout({
         setAuth(session);
         setIsReady(true);
       } catch (error) {
-        console.error("Error cargando sesión:", error);
+        console.error("Error cargando sesion:", error);
         router.replace("/login/personal");
       }
     }
 
     void init();
-    return () => { isMounted = false; };
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   // Cierra el sidebar si se cambia a desktop
@@ -63,10 +66,13 @@ export default function AdminDashboardLayout({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
     setIsLoggingOut(true);
-    clearAuth();
-    router.replace("/login/personal");
+    try {
+      await logoutSession();
+    } finally {
+      router.replace("/login/personal");
+    }
   }
 
   if (!isReady) {
@@ -79,7 +85,9 @@ export default function AdminDashboardLayout({
 
   return (
     <div className="dashboard-layout">
-      <AdminSidebar
+
+      {/* ── Sidebar desktop (siempre visible) + mobile (drawer) ── */}
+      <TechnicianSidebar
         auth={auth}
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
@@ -87,7 +95,7 @@ export default function AdminDashboardLayout({
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Overlay mobile */}
+      {/* ── Overlay mobile: cierra el sidebar al tocar fuera ── */}
       {sidebarOpen && (
         <div
           className="sidebar-mobile-overlay"
@@ -97,7 +105,8 @@ export default function AdminDashboardLayout({
       )}
 
       <main className="dashboard-main">
-        {/* Topbar mobile */}
+
+        {/* ── Topbar mobile: solo visible en < 768px ── */}
         <header className="mobile-topbar">
           <button
             type="button"
@@ -105,6 +114,7 @@ export default function AdminDashboardLayout({
             onClick={() => setSidebarOpen(true)}
             aria-label="Abrir menú"
           >
+            {/* Icono hamburguesa */}
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <line x1="3" y1="6"  x2="21" y2="6" />
               <line x1="3" y1="12" x2="21" y2="12" />
@@ -112,11 +122,13 @@ export default function AdminDashboardLayout({
             </svg>
           </button>
 
+          {/* Logo centrado */}
           <span className="mobile-topbar-title">
             <span className="logo-dot" aria-hidden="true" />
             USB<span style={{ color: "var(--color-primary)" }}>Lens</span>
           </span>
 
+          {/* Placeholder derecho para centrar el título */}
           <div style={{ width: 40 }} aria-hidden="true" />
         </header>
 

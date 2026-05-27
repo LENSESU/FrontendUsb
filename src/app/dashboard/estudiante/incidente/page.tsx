@@ -9,6 +9,7 @@ import {
 	type AuthData,
 } from "@/utils/auth";
 import LocationField from "@/components/LocationField";
+import Image from "next/image";
 
 type GpsCoordinates = {
 	latitude: number;
@@ -81,6 +82,7 @@ export default function EstudianteIncidentePage() {
 	const [gpsCoords, setGpsCoords] = useState<GpsCoordinates>(null);
 	const [description, setDescription] = useState("");
 	const [image, setImage] = useState<File | null>(null);
+	const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 	const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>(CATEGORY_FALLBACK_OPTIONS);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -195,6 +197,18 @@ export default function EstudianteIncidentePage() {
 			}
 		};
 	}, []);
+
+	useEffect(() => {
+		if (!image) {
+			setImagePreviewUrl(null);
+			return;
+		}
+
+		// Crear y limpiar Object URL para previsualizar archivo local sin fugas de memoria.
+		const nextPreviewUrl = URL.createObjectURL(image);
+		setImagePreviewUrl(nextPreviewUrl);
+		return () => URL.revokeObjectURL(nextPreviewUrl);
+	}, [image]);
 
 	function clearFieldError(field: keyof IncidentErrors) {
 		setErrors((current) => {
@@ -676,6 +690,27 @@ export default function EstudianteIncidentePage() {
 									onChange={handleImageChange}
 									hidden
 								/>
+								{imagePreviewUrl ? (
+									<div
+										style={{
+										marginTop: "0.75rem",
+										position: "relative",
+										width: "100%",
+										aspectRatio: "4 / 3",
+										borderRadius: "0.5rem",
+										overflow: "hidden",
+										border: "1px solid var(--color-border)",
+										}}
+									>
+										<Image
+										src={imagePreviewUrl}
+										alt="Vista previa de evidencia del incidente"
+										fill
+										style={{ objectFit: "cover" }}
+										unoptimized
+										/>
+									</div>
+								) : null}
 								{image ? <p className="text-small text-secondary">Archivo: {image.name}</p> : null}
 								{errors.image ? (
 									<p id="incident-image-error" className="field-error-text">

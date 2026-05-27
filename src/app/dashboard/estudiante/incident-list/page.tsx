@@ -10,7 +10,6 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 function getUserIdFromToken(token: string) {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    console.log("JWT PAYLOAD:", payload);
     return payload.sub || payload.user_id || payload.id || null;
   } catch {
     return null;
@@ -107,7 +106,6 @@ export default function ListaIncidentesPage() {
 
         // obtener userId desde el token
         const userId = getUserIdFromToken(token);
-        console.log("USER ID:", userId);
 
         // filtrar solo incidentes del usuario
         const filtered = incidentsArray.filter(
