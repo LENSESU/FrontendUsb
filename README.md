@@ -10,9 +10,8 @@ Frontend del Proyecto USB desarrollado con **Next.js**, TypeScript y Tailwind CS
 ## Instalación
 
 ```bash
-npm install 
+npm install
 ```
-
 
 ## Desarrollo
 
@@ -31,12 +30,12 @@ npm start
 
 ## Scripts
 
-| Comando   | Descripción              |
-| --------- | ------------------------ |
-| `npm run dev`   | Servidor de desarrollo   |
-| `npm run build` | Build de producción      |
-| `npm start`     | Servidor de producción   |
-| `npm run lint`  | Ejecutar ESLint          |
+| Comando         | Descripción            |
+| --------------- | ---------------------- |
+| `npm run dev`   | Servidor de desarrollo |
+| `npm run build` | Build de producción    |
+| `npm start`     | Servidor de producción |
+| `npm run lint`  | Ejecutar ESLint        |
 
 ## Dependencias principales
 
@@ -44,6 +43,8 @@ Este proyecto usa las siguientes dependencias clave:
 
 - **next**: framework principal para el frontend.
 - **react / react-dom**: librería de UI y renderizado.
+- **leaflet** y **react-leaflet**: mapa interactivo para selección y visualización de ubicaciones de incidentes.
+- **@types/leaflet**: tipos de TypeScript para Leaflet.
 - **tailwindcss**: librería de estilos utilitarios.
 - **eslint** y **eslint-config-next**: reglas de linting para mantener un código consistente.
 - **typescript**: tipado estático para el proyecto.
@@ -56,10 +57,9 @@ Este proyecto usa las siguientes dependencias clave:
 ### Clonar el repositorio
 
 ```bash
-git clone https://github.com/Chologalactico/FrontendUsb.git
-cd FRONTEND
+git clone https://github.com/LENSESU/FrontendUsb.git
+cd FrontendUsb
 ```
-
 
 ### Crear y usar una rama nueva
 
@@ -71,12 +71,14 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
    git checkout -b nombre-de-tu-rama
    ```
 
-2. **Trabajar en la rama**: haz commits normalmente.
+2. **Trabajar en la rama**: haz commits normalmente — siempre desde la **terminal**, no desde la UI de VSCode:
 
    ```bash
    git add .
    git commit -m "[ADD]Descripción del cambio"
    ```
+
+   > ⚠️ El hook `commit-msg` rechaza commits hechos desde la UI de VSCode porque no respetan el formato. Usa siempre la terminal.
 
 3. **Subir tu rama al remoto** (para que otros la vean o para abrir un Pull Request):
 
@@ -97,7 +99,7 @@ Para trabajar en una funcionalidad o corrección sin afectar la rama principal:
    git branch -a
    ```
 
-Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `main` mediante Pull Requests o Merge Requests.
+Cada persona puede crear y manejar sus propias ramas; se recomienda integrar los cambios a `dev` mediante Pull Requests.
 
 ## Convención de mensajes de commit
 
@@ -109,11 +111,10 @@ git commit -m "[TIPO]Descripción del cambio"
 
 Donde `TIPO` puede ser uno de:
 
-- `[ADD]`   → cuando agregas nuevo código o funcionalidad.
+- `[ADD]` → cuando agregas nuevo código o funcionalidad.
 - `[UPDATE]` → cuando actualizas o mejoras algo existente.
 - `[DELETE]` → cuando eliminas código, archivos o funcionalidades.
-- `[FIX]`   → cuando corriges un bug o comportamiento incorrecto.
-
+- `[FIX]` → cuando corriges un bug o comportamiento incorrecto.
 
 ### Ejemplos correctos
 
@@ -122,12 +123,11 @@ Donde `TIPO` puede ser uno de:
 - `git commit -m "[DELETE]Elimina componente no usado"`
 - `git commit -m "[FIX]Corrige validación del formulario de registro"`
 
-
 ### Ejemplos incorrectos (serán rechazados por el hook)
 
-- `git commit -m "feat: agrega login"`  ← falta el formato `[TIPO]texto`
-- `git commit -m "[ADD]"`               ← falta descripción luego del tipo
-- `git commit -m "ADD agrega login"`    ← falta corchetes `[ADD]`
+- `git commit -m "feat: agrega login"` ← falta el formato `[TIPO]texto`
+- `git commit -m "[ADD]"` ← falta descripción luego del tipo
+- `git commit -m "ADD agrega login"` ← falta corchetes `[ADD]`
 
 Si el mensaje no respeta este formato, el hook `commit-msg` bloqueará el commit.
 
@@ -148,3 +148,75 @@ docker run -p 3000:3000 frontend-usb
 ```
 
 La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Variables de entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto antes de correr el proyecto:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+> El backend debe estar corriendo (en Docker según su README) para que las llamadas a la API funcionen.
+
+---
+
+## Estilos — globals.css
+
+**Toda la estética del proyecto está definida en `src/app/globals.css`.**
+
+- No uses `style={{}}` en los componentes.
+- No uses atributos visuales (`stroke`, `fill`, `color`) en los SVGs del JSX.
+- No escribas `<style>` dentro de los componentes.
+- Usa las clases definidas en `globals.css` y variables CSS como `var(--color-primary)`.
+
+---
+
+## Estructura de carpetas
+
+La estructura ya está creada. Cada quien trabaja **únicamente en su carpeta asignada**. No renombres archivos ni crees carpetas nuevas sin avisar.
+
+```
+src/
+├── app/
+│   ├── globals.css                                      ← estilos globales, NO tocar sin avisar al equipo
+│   ├── layout.tsx
+│   ├── page.tsx                                         ← pantalla de selección de rol
+│   ├── login/
+│   │   ├── estudiante/page.tsx                          ← login estudiante OTP
+│   │   └── personal/page.tsx                            ← login admin/técnico
+│   ├── loginAdmin/page.tsx
+│   ├── loginTec/page.tsx
+│   ├── register/
+│   │   └── estudiante/page.tsx                          ← registro de estudiantes
+│   ├── verify-code/page.tsx                             ← verificación OTP
+│   └── dashboard/
+│       ├── admin/page.tsx
+│       ├── tecnico/page.tsx
+│       └── estudiante/
+│           ├── layout.tsx
+│           ├── page.tsx
+│           ├── dashboard/
+│           │   ├── StudentDashboardHome.tsx
+│           │   └── incidente-detalle/page.tsx
+│           ├── incidente/page.tsx                       ← reporte de nuevo incidente
+│           └── reportes/page.tsx
+├── components/
+│   ├── AuthProvider.tsx                                 ← contexto de autenticación
+│   ├── CodeInput.tsx                                    ← input para código OTP
+│   ├── IncidentResponseModal.tsx                        ← modal de respuesta a incidentes
+│   ├── IncidentStatusBadge.tsx                          ← badge de estado de incidente
+│   ├── InteractiveMap.tsx                               ← mapa interactivo (Leaflet)
+│   ├── LocationField.tsx                                ← campo de selección de ubicación en mapa
+│   ├── ProtectedDashboard.tsx                           ← wrapper de rutas protegidas
+│   ├── StaffLoginForm.tsx                               ← formulario de login para staff
+│   └── StudentSidebar.tsx                               ← sidebar del dashboard estudiantil
+└── utils/
+    ├── auth.ts                                          ← utilidades de autenticación
+    ├── incidentStatus.ts                                ← helpers de estado de incidentes
+    └── jwt.ts                                           ← manejo de JWT
+```
+
+Los archivos se llaman `page.tsx` porque Next.js define las rutas por carpeta, no por nombre de archivo. Si el archivo no se llama exactamente `page.tsx`, la ruta no existe.
