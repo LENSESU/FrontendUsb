@@ -752,10 +752,6 @@ export default function CrearSugerenciaPage() {
 			}
 
 			if (!response.ok) {
-				console.log(
-					"ERROR BACKEND:",
-					data,
-				);
 
 				const detail =
 					typeof data?.detail ===
@@ -782,10 +778,6 @@ export default function CrearSugerenciaPage() {
 				return;
 			}
 
-			console.log(
-				"SUGERENCIA CREADA:",
-				data,
-			);
 
 			setModalIsError(false);
 
