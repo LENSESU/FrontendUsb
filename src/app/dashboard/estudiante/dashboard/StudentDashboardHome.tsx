@@ -5,7 +5,7 @@ import { AuthData, restoreAuthSession } from "@/utils/auth";
 import { useRouter } from "next/navigation";
 import { IncidentStatusBadge } from "@/components/IncidentStatusBadge";
 import { IncidentStatus } from "@/utils/incidentStatus";
-import { JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -33,7 +33,6 @@ type IncidentMock = {
   status: IncidentStatus;
 };
 
-/** Elemento de sugerencia según el API de popularidad */
 type PopularSuggestionItem = {
   id: string;
   titulo: string;
@@ -43,9 +42,6 @@ type PopularSuggestionItem = {
   estudiante_id?: string;
 };
 
-/**
- * Datos de respaldo cuando el endpoint no devuelve ítems o falla la petición.
- */
 function getFallbackPopularSuggestions(): PopularSuggestionItem[] {
   return [
     {
@@ -58,9 +54,6 @@ function getFallbackPopularSuggestions(): PopularSuggestionItem[] {
   ];
 }
 
-/**
- * Interpreta el JSON paginado de sugerencias y valida cada fila.
- */
 function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
   if (!raw || typeof raw !== "object") return [];
   const root = raw as Record<string, unknown>;
@@ -81,7 +74,8 @@ function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
           ? Number.parseInt(rawVotes, 10)
           : 0;
     const created_at = typeof row.created_at === "string" ? row.created_at : "";
-    const estudiante_id = typeof row.estudiante_id === "string" ? row.estudiante_id : undefined;
+    const estudiante_id =
+      typeof row.estudiante_id === "string" ? row.estudiante_id : undefined;
     const etiquetas: string[] = Array.isArray(row.etiquetas)
       ? row.etiquetas.filter((tag): tag is string => typeof tag === "string")
       : [];
@@ -98,9 +92,6 @@ function parsePopularSuggestionsPayload(raw: unknown): PopularSuggestionItem[] {
   return result;
 }
 
-/**
- * Muestra antigüedad relativa en español para la fecha de creación ISO.
- */
 function formatRelativeDateEs(iso: string): string {
   if (!iso) return "";
   const parsed = new Date(iso);
@@ -247,6 +238,112 @@ function DocIconSmall({ className }: { className?: string }) {
   );
 }
 
+/* ── Vote button ── */
+
+function VoteButton({
+  item,
+  index,
+  isVoting,
+  hasVoted,
+  isCheckingVote,
+  onVote,
+}: {
+  item: PopularSuggestionItem;
+  index: number;
+  isVoting: boolean;
+  hasVoted: boolean;
+  isCheckingVote: boolean;
+  onVote: (id: string) => void;
+}) {
+  const highlight = index % 2 === 0;
+
+  // Already voted: green tones, checkmark, "YA VOTÉ"
+  if (hasVoted) {
+    return (
+      <button
+        disabled
+        aria-label={`Ya votaste por ${item.titulo}`}
+        title="Ya registraste tu voto"
+        className="flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-green-300 bg-green-50 px-2 py-1 opacity-80 cursor-not-allowed"
+      >
+        {/* Checkmark icon */}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          className="text-green-500"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <span className="text-lg font-bold text-green-600">{item.total_votos}</span>
+        <span className="text-[10px] font-semibold text-green-500">YA VOTÉ</span>
+      </button>
+    );
+  }
+
+  // Skeleton while checking initial vote status
+  if (isCheckingVote) {
+    return (
+      <span
+        className="skeleton rounded-lg"
+        style={{ width: 60, height: 64, flexShrink: 0 }}
+        aria-hidden
+      />
+    );
+  }
+
+  // Normal votable state
+  return (
+    <button
+      onClick={() => onVote(item.id)}
+      disabled={isVoting}
+      aria-label={`Votar por ${item.titulo}`}
+      className={
+        highlight
+          ? "flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600 card-clickable disabled:opacity-50"
+          : "flex min-w-[60px] flex-col items-center justify-center rounded-lg border badge-closed card-clickable disabled:opacity-50"
+      }
+    >
+      <svg
+        className="-rotate-90"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+      <span
+        className={
+          highlight
+            ? "text-lg font-bold text-orange-600"
+            : "text-lg font-bold text-closed"
+        }
+      >
+        {isVoting ? "..." : item.total_votos}
+      </span>
+      <span
+        className={
+          highlight
+            ? "text-[10px] font-semibold text-orange-500"
+            : "text-[10px] font-semibold text-closed"
+        }
+      >
+        VOTOS
+      </span>
+    </button>
+  );
+}
+
+/* ── Main component ── */
+
 export default function StudentDashboardHome({
   auth,
   onLogout,
@@ -261,6 +358,8 @@ export default function StudentDashboardHome({
 
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+  // IDs whose initial vote status is still being fetched from GET /{id}/vote
+  const [checkingVoteIds, setCheckingVoteIds] = useState<Set<string>>(new Set());
 
   // ── Fetch incidentes del estudiante ──
   useEffect(() => {
@@ -300,8 +399,9 @@ export default function StudentDashboardHome({
         );
 
         const mapped: IncidentMock[] = filtered
-          .sort((a: Record<string, any>, b: Record<string, any>) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          .sort(
+            (a: Record<string, any>, b: Record<string, any>) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           )
           .slice(0, 5)
           .map((i: any) => ({
@@ -311,10 +411,13 @@ export default function StudentDashboardHome({
             place: i.campus_place || "Sin ubicación",
             date: new Date(i.created_at).toLocaleDateString(),
             status:
-              i.status === "Nuevo" ? "Nuevo"
-              : i.status === "En_proceso" ? "En_proceso"
-              : i.status === "Resuelto" ? "Resuelto"
-              : "Nuevo",
+              i.status === "Nuevo"
+                ? "Nuevo"
+                : i.status === "En_proceso"
+                  ? "En_proceso"
+                  : i.status === "Resuelto"
+                    ? "Resuelto"
+                    : "Nuevo",
           }));
 
         setIncidents(mapped);
@@ -328,7 +431,7 @@ export default function StudentDashboardHome({
     void fetchIncidents();
   }, []);
 
-  // ── Fetch sugerencias populares y conteo propio ──
+  // ── Fetch sugerencias populares + check vote status for each ──
   useEffect(() => {
     let cancelled = false;
 
@@ -346,36 +449,73 @@ export default function StudentDashboardHome({
           return;
         }
 
-        const userId = getUserIdFromToken(session.accessToken);
+        const token = session.accessToken;
+        const userId = getUserIdFromToken(token);
 
         const res = await fetch(`${API}/api/v1/suggestions/`, {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
         const raw: unknown = await res.json().catch(() => null);
         const parsed = parsePopularSuggestionsPayload(raw);
 
-        // Conteo de sugerencias propias del usuario
         const myCount = userId
           ? parsed.filter((s) => s.estudiante_id === userId).length
           : 0;
 
-        const sorted = [...parsed].sort((a, b) => b.total_votos - a.total_votos).slice(0, 5);
+        const sorted = [...parsed]
+          .sort((a, b) => b.total_votos - a.total_votos)
+          .slice(0, 5);
+
+        const displayed = sorted.length > 0 ? sorted : fallback;
 
         if (!cancelled) {
-          setPopularSuggestions(sorted.length > 0 ? sorted : fallback);
+          setPopularSuggestions(displayed);
           setMySuggestionsCount(myCount);
+          setLoadingSuggestions(false);
+        }
+
+        // After rendering the list, check vote status for each suggestion in parallel.
+        // Mark each as "checking" while in-flight so the button shows a skeleton.
+        const ids = displayed.map((s) => s.id);
+        if (!cancelled) {
+          setCheckingVoteIds(new Set(ids));
+        }
+
+        const voteChecks = ids.map(async (id) => {
+          try {
+            const r = await fetch(`${API}/api/v1/suggestions/${id}/vote`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!r.ok) return { id, hasVoted: false };
+            const data = await r.json() as { has_voted: boolean };
+            return { id, hasVoted: data.has_voted === true };
+          } catch {
+            return { id, hasVoted: false };
+          }
+        });
+
+        const results = await Promise.all(voteChecks);
+
+        if (!cancelled) {
+          const alreadyVoted = results
+            .filter((r) => r.hasVoted)
+            .map((r) => r.id);
+          if (alreadyVoted.length > 0) {
+            setVotedIds((prev) => new Set([...prev, ...alreadyVoted]));
+          }
+          setCheckingVoteIds(new Set());
         }
       } catch {
         if (!cancelled) {
           setPopularSuggestions(fallback);
           setMySuggestionsCount(0);
+          setLoadingSuggestions(false);
+          setCheckingVoteIds(new Set());
         }
-      } finally {
-        if (!cancelled) setLoadingSuggestions(false);
       }
     }
 
@@ -394,19 +534,24 @@ export default function StudentDashboardHome({
       const session = await restoreAuthSession();
       if (!session?.accessToken) return;
 
-      const res = await fetch(`${API}/api/v1/suggestions/${suggestionId}/vote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-      });
+      const res = await fetch(
+        `${API}/api/v1/suggestions/${suggestionId}/vote`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        }
+      );
 
       if (res.status === 201) {
         setVotedIds((prev) => new Set(prev).add(suggestionId));
         setPopularSuggestions((prev) =>
           prev.map((s) =>
-            s.id === suggestionId ? { ...s, total_votos: s.total_votos + 1 } : s
+            s.id === suggestionId
+              ? { ...s, total_votos: s.total_votos + 1 }
+              : s
           )
         );
       }
@@ -478,14 +623,18 @@ export default function StudentDashboardHome({
       {/* ── Stats ── */}
       <section className="mb-6 sm:mb-8">
         <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-4 lg:gap-6">
-          {loadingIncidents ? <SkeletonStatCard /> : (
+          {loadingIncidents ? (
+            <SkeletonStatCard />
+          ) : (
             <StatSummaryCard
               value={String(incidents.length)}
               title="Mis Incidentes"
               subtitle="+1 esta semana"
             />
           )}
-          {loadingSuggestions ? <SkeletonStatCard /> : (
+          {loadingSuggestions ? (
+            <SkeletonStatCard />
+          ) : (
             <StatSummaryCard
               value={String(mySuggestionsCount)}
               title="Mis Sugerencias"
@@ -547,7 +696,10 @@ export default function StudentDashboardHome({
                   </>
                 ) : incidents.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-sm text-[var(--color-text-secondary)]">
+                    <td
+                      colSpan={5}
+                      className="px-3 py-6 text-center text-sm text-[var(--color-text-secondary)]"
+                    >
                       No tienes incidentes registrados aún.
                     </td>
                   </tr>
@@ -562,13 +714,17 @@ export default function StudentDashboardHome({
                         )
                       }
                     >
-                      <td className="px-3 py-3 font-medium text-[var(--color-primary)]">{row.id}</td>
+                      <td className="px-3 py-3 font-medium text-[var(--color-primary)]">
+                        {row.id}
+                      </td>
                       <td className="px-3 py-3">{row.category}</td>
                       <td className="px-3 py-3">{row.place}</td>
                       <td className="px-3 py-3">
                         <IncidentStatusBadge status={row.status} />
                       </td>
-                      <td className="px-3 py-3 text-[var(--color-text-secondary)]">{row.date}</td>
+                      <td className="px-3 py-3 text-[var(--color-text-secondary)]">
+                        {row.date}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -637,74 +793,40 @@ export default function StudentDashboardHome({
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {popularSuggestions.map((item, index) => {
-                  const highlightVotes = index % 2 === 0;
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 rounded-lg border-b border-[var(--color-border-light)] p-3"
-                    >
-                      <button
-                        onClick={() => handleVote(item.id)}
-                        disabled={votingIds.has(item.id) || votedIds.has(item.id)}
-                        className={
-                          highlightVotes
-                            ? "flex min-w-[60px] flex-col items-center justify-center rounded-lg border border-orange-300 bg-orange-50 px-2 py-1 text-orange-600 card-clickable disabled:opacity-50"
-                            : "flex min-w-[60px] flex-col items-center justify-center rounded-lg border badge-closed card-clickable disabled:opacity-50"
-                        }
-                        aria-label={`Votar por ${item.titulo}`}
-                      >
-                        <svg
-                          className="-rotate-90"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                        <span
-                          className={
-                            highlightVotes
-                              ? "text-lg font-bold text-orange-600"
-                              : "text-lg font-bold text-closed"
-                          }
-                        >
-                          {votingIds.has(item.id) ? "..." : item.total_votos}
+                {popularSuggestions.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 rounded-lg border-b border-[var(--color-border-light)] p-3"
+                  >
+                    <VoteButton
+                      item={item}
+                      index={index}
+                      isVoting={votingIds.has(item.id)}
+                      hasVoted={votedIds.has(item.id)}
+                      isCheckingVote={checkingVoteIds.has(item.id)}
+                      onVote={handleVote}
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="font-semibold text-[var(--color-text-primary)]">
+                        {item.titulo}
+                      </span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                        {item.etiquetas.length > 0 ? (
+                          item.etiquetas.slice(0, 2).map((tag) => (
+                            <span key={`${item.id}-${tag}`} className="badge">
+                              {tag}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[var(--color-text-hint)]">Sin etiquetas</span>
+                        )}
+                        <span className="text-[var(--color-text-hint)]">
+                          {formatRelativeDateEs(item.created_at)}
                         </span>
-                        <span
-                          className={
-                            highlightVotes
-                              ? "text-[10px] font-semibold text-orange-500"
-                              : "text-[10px] font-semibold text-closed"
-                          }
-                        >
-                          VOTOS
-                        </span>
-                      </button>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="font-semibold text-[var(--color-text-primary)]">{item.titulo}</span>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                          {item.etiquetas.length > 0 ? (
-                            item.etiquetas.slice(0, 2).map((tag) => (
-                              <span key={`${item.id}-${tag}`} className="badge">
-                                {tag}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-[var(--color-text-hint)]">Sin etiquetas</span>
-                          )}
-                          <span className="text-[var(--color-text-hint)]">
-                            {formatRelativeDateEs(item.created_at)}
-                          </span>
-                        </div>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </div>
