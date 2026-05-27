@@ -64,7 +64,10 @@ const DEFAULT_FORM: FormState = {
 
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return "";
-  return iso.slice(0, 16);
+  const d = new Date(iso);
+  // Shift to local wall-clock time so datetime-local shows the correct local hour
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -493,7 +496,7 @@ export default function AreasInhabilitadasHome() {
       {/* Desktop table */}
       {!loading && areas.length > 0 && (
         <>
-          <div className="card" style={{ overflowX: "auto", display: "none" }} id="areas-table-desktop">
+          <div className="card" style={{ overflowX: "auto" }} id="areas-table-desktop">
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-small)" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid var(--color-border-light)" }}>
