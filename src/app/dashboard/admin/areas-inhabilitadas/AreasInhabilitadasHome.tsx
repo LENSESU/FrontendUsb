@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { restoreAuthSession } from "@/utils/auth";
+import { DayPicker, type DateRange } from "@daypicker/react";
+import { es } from "date-fns/locale";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -81,11 +83,44 @@ function formatDate(iso: string | null | undefined): string {
   });
 }
 
+function formatDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function endOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+function getAreaDateRange(area: AreaInhabilitada): { start: Date; end: Date | null } {
+  const start = new Date(area.fecha_inicio);
+  const end = area.fecha_fin ? new Date(area.fecha_fin) : null;
+  return { start, end: end && !Number.isNaN(end.getTime()) ? end : null };
+}
+
+function doesAreaOverlapRange(area: AreaInhabilitada, range: DateRange): boolean {
+  if (!range.from || !range.to) return true;
+  const { start, end } = getAreaDateRange(area);
+  if (Number.isNaN(start.getTime())) return false;
+  const areaStart = start;
+  const areaEnd = end ?? new Date(8640000000000000); // “infinito” para áreas sin fecha fin
+  const rangeStart = startOfDay(range.from);
+  const rangeEnd = endOfDay(range.to);
+  return areaStart <= rangeEnd && areaEnd >= rangeStart;
+}
+
 export default function AreasInhabilitadasHome() {
   const [areas, setAreas] = useState<AreaInhabilitada[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Form
   const [showForm, setShowForm] = useState(false);
@@ -100,6 +135,19 @@ export default function AreasInhabilitadasHome() {
 
   // Filter
   const [soloActivas, setSoloActivas] = useState(false);
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined);
+  const [appliedRange, setAppliedRange] = useState<DateRange | undefined>(undefined);
+
+  useEffect(() => {
+    // Propósito: ajustar UI responsiva (móvil vs escritorio) sin dependencias extra.
+    // Nota: matchMedia solo existe en navegador; este componente es client-only.
+    const media = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     loadAreas();
@@ -258,6 +306,11 @@ export default function AreasInhabilitadasHome() {
     }
   }
 
+  const filteredAreas =
+    appliedRange?.from && appliedRange?.to
+      ? areas.filter((a) => doesAreaOverlapRange(a, appliedRange))
+      : areas;
+
   return (
     <div style={{ padding: "var(--space-lg)" }}>
       {/* Header */}
@@ -323,7 +376,7 @@ export default function AreasInhabilitadasHome() {
                   value={form.nombre}
                   onChange={(e) => { setForm({ ...form, nombre: e.target.value }); setFormErrors({ ...formErrors, nombre: undefined }); }}
                   className={formErrors.nombre ? "input-error" : ""}
-                  aria-invalid={Boolean(formErrors.nombre)}
+                  aria-invalid={formErrors.nombre ? "true" : "false"}
                 />
                 {formErrors.nombre && <p className="field-error-text">{formErrors.nombre}</p>}
               </div>
@@ -338,7 +391,7 @@ export default function AreasInhabilitadasHome() {
                   value={form.motivo}
                   onChange={(e) => { setForm({ ...form, motivo: e.target.value }); setFormErrors({ ...formErrors, motivo: undefined }); }}
                   className={formErrors.motivo ? "input-error" : ""}
-                  aria-invalid={Boolean(formErrors.motivo)}
+                  aria-invalid={formErrors.motivo ? "true" : "false"}
                   style={{ resize: "vertical" }}
                 />
                 {formErrors.motivo && <p className="field-error-text">{formErrors.motivo}</p>}
@@ -362,7 +415,6 @@ export default function AreasInhabilitadasHome() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
                   gap: "var(--space-md)",
                 }}
                 className="dates-grid"
@@ -375,7 +427,7 @@ export default function AreasInhabilitadasHome() {
                     value={form.fecha_inicio}
                     onChange={(e) => { setForm({ ...form, fecha_inicio: e.target.value }); setFormErrors({ ...formErrors, fecha_inicio: undefined }); }}
                     className={formErrors.fecha_inicio ? "input-error" : ""}
-                    aria-invalid={Boolean(formErrors.fecha_inicio)}
+                    aria-invalid={formErrors.fecha_inicio ? "true" : "false"}
                   />
                   {formErrors.fecha_inicio && <p className="field-error-text">{formErrors.fecha_inicio}</p>}
                 </div>
@@ -387,7 +439,7 @@ export default function AreasInhabilitadasHome() {
                     value={form.fecha_fin}
                     onChange={(e) => { setForm({ ...form, fecha_fin: e.target.value }); setFormErrors({ ...formErrors, fecha_fin: undefined }); }}
                     className={formErrors.fecha_fin ? "input-error" : ""}
-                    aria-invalid={Boolean(formErrors.fecha_fin)}
+                    aria-invalid={formErrors.fecha_fin ? "true" : "false"}
                   />
                   {formErrors.fecha_fin && <p className="field-error-text">{formErrors.fecha_fin}</p>}
                 </div>
@@ -426,7 +478,7 @@ export default function AreasInhabilitadasHome() {
               )}
 
               {/* Botones */}
-              <div style={{ display: "flex", gap: "var(--space-md)", marginTop: "var(--space-lg)" }}>
+              <div className="area-form-actions" style={{ display: "flex", gap: "var(--space-md)", marginTop: "var(--space-lg)" }}>
                 <button
                   type="button"
                   className="btn-secondary"
@@ -451,28 +503,146 @@ export default function AreasInhabilitadasHome() {
       )}
 
       {/* Filtro */}
-      <div style={{ display: "flex", gap: "var(--space-sm)", marginBottom: "var(--space-md)", flexWrap: "wrap" }}>
-        <button
-          className={`text-xs px-3 py-1 rounded-full font-medium cursor-pointer border transition-all ${
-            !soloActivas
-              ? "border-2 border-orange-500 bg-orange-500 text-white font-semibold shadow-sm"
-              : "border border-[var(--color-border-light)] bg-white text-[var(--color-text-primary)] hover:border-orange-400 hover:text-orange-500"
-          }`}
-          onClick={() => setSoloActivas(false)}
-        >
-          Todas
-        </button>
-        <button
-          className={`text-xs px-3 py-1 rounded-full font-medium cursor-pointer border transition-all ${
-            soloActivas
-              ? "border-2 border-orange-500 bg-orange-500 text-white font-semibold shadow-sm"
-              : "border border-[var(--color-border-light)] bg-white text-[var(--color-text-primary)] hover:border-orange-400 hover:text-orange-500"
-          }`}
-          onClick={() => setSoloActivas(true)}
-        >
-          Solo inhabilitadas
-        </button>
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-sm)",
+          marginBottom: "var(--space-md)",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+          <button
+            className={`text-xs px-3 py-1 rounded-full font-medium cursor-pointer border transition-all ${
+              !soloActivas
+                ? "border-2 border-orange-500 bg-orange-500 text-white font-semibold shadow-sm"
+                : "border border-[var(--color-border-light)] bg-white text-[var(--color-text-primary)] hover:border-orange-400 hover:text-orange-500"
+            }`}
+            onClick={() => setSoloActivas(false)}
+          >
+            Todas
+          </button>
+          <button
+            className={`text-xs px-3 py-1 rounded-full font-medium cursor-pointer border transition-all ${
+              soloActivas
+                ? "border-2 border-orange-500 bg-orange-500 text-white font-semibold shadow-sm"
+                : "border border-[var(--color-border-light)] bg-white text-[var(--color-text-primary)] hover:border-orange-400 hover:text-orange-500"
+            }`}
+            onClick={() => setSoloActivas(true)}
+          >
+            Solo inhabilitadas
+          </button>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ width: "auto", padding: "8px 14px" }}
+            onClick={() => {
+              setIsDateFilterOpen(true);
+              setDraftRange(appliedRange);
+            }}
+          >
+            {appliedRange?.from && appliedRange?.to
+              ? `Filtrar: ${formatDateKey(appliedRange.from)} → ${formatDateKey(appliedRange.to)}`
+              : "Filtrar por rango"}
+          </button>
+        </div>
       </div>
+
+      {/* Modal: filtro por rango */}
+      {isDateFilterOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filtrar áreas por rango de fechas"
+          onClick={() => setIsDateFilterOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "var(--space-lg)",
+            zIndex: 50,
+          }}
+        >
+          <div
+            className="card"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(920px, 100%)", padding: "var(--space-lg)" }}
+          >
+            <div className="range-modal">
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-md)" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "var(--font-size-h3)", fontWeight: "var(--font-weight-bold)" }}>
+                  Filtrar por rango
+                </h2>
+                <p style={{ margin: "6px 0 0", color: "var(--color-text-secondary)", fontSize: "var(--font-size-small)" }}>
+                  Selecciona una fecha de inicio y una fecha de fin.
+                </p>
+              </div>
+              <button type="button" className="btn-secondary" style={{ width: "auto", padding: "8px 12px" }} onClick={() => setIsDateFilterOpen(false)}>
+                Cerrar
+              </button>
+            </div>
+
+            <div className="range-modal-body" style={{ marginTop: "var(--space-md)", display: "flex", justifyContent: "center" }}>
+              <DayPicker
+                mode="range"
+                selected={draftRange}
+                onSelect={setDraftRange}
+                locale={es}
+                numberOfMonths={isMobile ? 1 : 2}
+                showOutsideDays
+              />
+            </div>
+
+            <div style={{ marginTop: "var(--space-md)", display: "flex", justifyContent: "space-between", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+              <div style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-small)" }}>
+                {draftRange?.from && draftRange?.to ? (
+                  <>
+                    Rango seleccionado: <strong>{formatDateKey(draftRange.from)}</strong> → <strong>{formatDateKey(draftRange.to)}</strong>
+                  </>
+                ) : (
+                  "Selecciona un rango para habilitar “Aplicar”."
+                )}
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  type="button"
+                  className="btn-link"
+                  style={{ width: "auto", margin: 0 }}
+                  onClick={() => {
+                    setDraftRange(undefined);
+                    setAppliedRange(undefined);
+                  }}
+                  disabled={!draftRange?.from && !draftRange?.to && !appliedRange?.from && !appliedRange?.to}
+                >
+                  Limpiar
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ width: "auto", padding: "10px 18px" }}
+                  onClick={() => {
+                    setAppliedRange(draftRange);
+                    setIsDateFilterOpen(false);
+                  }}
+                  disabled={!draftRange?.from || !draftRange?.to}
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (
@@ -493,8 +663,25 @@ export default function AreasInhabilitadasHome() {
         </div>
       )}
 
+      {/* Estado vacío cuando hay filtro aplicado y no hay coincidencias */}
+      {!loading && areas.length > 0 && filteredAreas.length === 0 && (
+        <div className="card" style={{ textAlign: "center", padding: "var(--space-xxl)" }}>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-body)" }}>
+            No hay áreas que coincidan con el rango seleccionado.
+          </p>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ width: "auto", padding: "10px 24px", marginTop: "var(--space-md)" }}
+            onClick={() => setAppliedRange(undefined)}
+          >
+            Limpiar filtro
+          </button>
+        </div>
+      )}
+
       {/* Desktop table */}
-      {!loading && areas.length > 0 && (
+      {!loading && filteredAreas.length > 0 && (
         <>
           <div className="card" style={{ overflowX: "auto" }} id="areas-table-desktop">
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-small)" }}>
@@ -517,7 +704,7 @@ export default function AreasInhabilitadasHome() {
                 </tr>
               </thead>
               <tbody>
-                {areas.map((area) => (
+                {filteredAreas.map((area) => (
                   <tr
                     key={area.id}
                     style={{ borderBottom: "1px solid var(--color-border-light)" }}
@@ -633,7 +820,7 @@ export default function AreasInhabilitadasHome() {
 
           {/* Mobile cards */}
           <div className="areas-mobile-list">
-            {areas.map((area) => (
+            {filteredAreas.map((area) => (
               <div key={area.id} className="card" style={{ marginBottom: "var(--space-md)", padding: "var(--space-md)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                   <span
@@ -767,12 +954,42 @@ export default function AreasInhabilitadasHome() {
           #areas-table-desktop { display: none !important; }
           .areas-mobile-list { display: block; }
         }
+
+        /* Form responsive */
+        @media (max-width: 540px) {
+          .card-body {
+            padding: var(--space-md) !important;
+          }
+          .area-form-actions {
+            flex-direction: column;
+          }
+          .area-form-actions > button {
+            width: 100% !important;
+          }
+        }
+
         .dates-grid {
           grid-template-columns: 1fr 1fr;
         }
-        @media (max-width: 540px) {
+        @media (max-width: 768px) {
           .dates-grid {
             grid-template-columns: 1fr;
+          }
+        }
+
+        /* Modal filtro por rango */
+        .range-modal {
+          max-height: min(78vh, 720px);
+          display: flex;
+          flex-direction: column;
+        }
+        .range-modal-body {
+          overflow: auto;
+          padding: 6px;
+        }
+        @media (max-width: 640px) {
+          .range-modal-body :global(.rdp) {
+            width: 100%;
           }
         }
       `}</style>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@daypicker/react/style.css";
 import AuthProvider from "@/components/AuthProvider";
 
 
