@@ -604,7 +604,11 @@ export default function TechnicianDetailPage() {
             {/* Mobile cards */}
             <ul className="divide-y divide-[var(--color-border-light)] md:hidden">
               {incidents.map((incident) => (
-                <li key={incident.id} className="p-4">
+                <li
+                  key={incident.id}
+                  className="p-4 cursor-pointer transition hover:bg-[var(--color-bg-muted)] active:bg-[var(--color-bg-muted)]"
+                  onClick={() => router.push(`/dashboard/admin/dashboard/incidente-detalle?id=${incident.id}`)}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs font-bold text-[var(--color-primary)]">
                       #{incident.id.slice(0, 8).toUpperCase()}
