@@ -1,29 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-
-// ── Constantes ────────────────────────────────────────────────────────────────
-
-const ZONE_RADIUS_M = 60;
-const USB_CENTER = { lat: 3.3453045315865504, lng: -76.5440884444818 };
-
-const CAMPUS_ZONES = [
-  { value: "Biblioteca",              label: "Biblioteca",              lat:  3.34491667, lng: -76.54394444 },
-  { value: "Lago",                    label: "Lago",                    lat:  3.34427778, lng: -76.54291667 },
-  { value: "Cedro",                   label: "Cedro",                   lat:  3.34480556, lng: -76.54291667 },
-  { value: "Central",                 label: "Central",                 lat:  3.34577778, lng: -76.54436111 },
-  { value: "Farrallones",             label: "Farrallones",             lat:  3.34576614, lng: -76.54566534 },
-  { value: "Parqueadero_estudiantes", label: "Parqueadero Estudiantes", lat:  3.34347222, lng: -76.54291667 },
-  { value: "Parque tecnologico",      label: "Parque Tecnológico",      lat:  3.34380556, lng: -76.54186111 },
-  { value: "Naranjos",                label: "Naranjos",                lat:  3.34513889, lng: -76.54155556 },
-  { value: "Higuerones",              label: "Higuerones",              lat:  3.34438889, lng: -76.54138889 },
-  { value: "Cancha",                  label: "Cancha",                  lat:  3.34425000, lng: -76.54497222 },
-  { value: "Cerezos",                 label: "Cerezos",                 lat:  3.34500000, lng: -76.54469444 },
-  { value: "Horizontes",              label: "Horizontes",              lat:  3.34577778, lng: -76.54436111 },
-  { value: "Palmas",                  label: "Palmas",                  lat:  3.34522222, lng: -76.54516667 },
-  { value: "Otros",                   label: "Otros",                   lat: null,        lng: null         },
-] as const;
+import {
+  CAMPUS_ZONES,
+  USB_CENTER,
+  ZONE_RADIUS_M,
+  getCampusZoneByValue,
+} from "@/data/campusZones";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -52,7 +36,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 }
 
 function getZoneMeta(value: string) {
-  return CAMPUS_ZONES.find((z) => z.value === value) ?? null;
+  return getCampusZoneByValue(value) ?? null;
 }
 
 function isWithinZone(lat: number, lng: number, zoneValue: string): boolean {
@@ -63,14 +47,9 @@ function isWithinZone(lat: number, lng: number, zoneValue: string): boolean {
 
 // ── Mapa (SSR-safe) ───────────────────────────────────────────────────────────
 
-/**
- * Ahora acepta `centerLat`/`centerLng` (para mover la vista del mapa)
- * separados de `latitude`/`longitude` (posición del marcador).
- */
 const InteractiveMap = dynamic(
   () =>
     import("./InteractiveMap").then((mod) => {
-      // Envuelve el componente original para inyectar la prop de centro
       const Original = mod.default;
 
       function WrappedMap(props: {
@@ -80,17 +59,6 @@ const InteractiveMap = dynamic(
         centerLng: number;
         onLocationSelect: (lat: number, lng: number) => void;
       }) {
-        // Pasamos centerLat/centerLng como latitude/longitude al MapCenterUpdater
-        // pero la posición del marcador sigue siendo props.latitude/longitude.
-        // Para lograr esto sin modificar InteractiveMap, añadimos un segundo
-        // MapCenterUpdater vía un componente wrapper de React-Leaflet.
-        // La forma más limpia: pasar centerLat/centerLng como las props
-        // de centrado y el marcador lo controlamos internamente.
-        //
-        // PERO: InteractiveMap solo acepta latitude/longitude para ambos usos.
-        // El fix real está en InteractiveMap.tsx (ver archivo adjunto).
-        // Mientras tanto, si centerLat/centerLng difieren del marcador,
-        // priorizamos el centro.
         return (
           <Original
             latitude={props.latitude}
@@ -122,7 +90,7 @@ const InteractiveMap = dynamic(
         Cargando mapa...
       </div>
     ),
-  }
+  },
 );
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -140,10 +108,8 @@ export default function LocationField({
   const [showMap, setShowMap] = useState(false);
   const [outOfZone, setOutOfZone] = useState(false);
 
-  // Centro del mapa — independiente del marcador
   const [mapCenter, setMapCenter] = useState(USB_CENTER);
 
-  // Cuando cambia la zona: recentrar mapa y revalidar marcador existente
   useEffect(() => {
     const meta = getZoneMeta(zone);
     const newCenter =
@@ -175,15 +141,24 @@ export default function LocationField({
   }
 
   function captureGps() {
-    if (!navigator.geolocation) { setGpsStatus("error"); return; }
+    if (!navigator.geolocation) {
+      setGpsStatus("error");
+      return;
+    }
     setGpsStatus("loading");
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setGpsStatus("success");
         setShowMap(true);
-        applyCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+        applyCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
       },
-      () => { setGpsStatus("error"); onGpsChange?.(null); },
+      () => {
+        setGpsStatus("error");
+        onGpsChange?.(null);
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
@@ -205,17 +180,16 @@ export default function LocationField({
   }
 
   const gpsLabel = {
-    idle:    "Capturar mi ubicación GPS",
+    idle: "Capturar mi ubicación GPS",
     loading: "Obteniendo ubicación...",
     success: "Ubicación capturada",
-    error:   "No se pudo obtener GPS — Reintentar",
+    error: "No se pudo obtener GPS — Reintentar",
   }[gpsStatus];
 
   const selectedZoneMeta = getZoneMeta(zone);
   const zoneHasCenter = selectedZoneMeta?.lat != null;
 
-  // El marcador se muestra en gpsCoords si existe, sino en el centro de zona
-  const markerLat = gpsCoords?.latitude  ?? mapCenter.lat;
+  const markerLat = gpsCoords?.latitude ?? mapCenter.lat;
   const markerLng = gpsCoords?.longitude ?? mapCenter.lng;
 
   return (
@@ -224,7 +198,6 @@ export default function LocationField({
         Ubicación <span className="field-required">*</span>
       </label>
 
-      {/* Dropdown de zona */}
       <select
         id="location-zone"
         value={zone}
@@ -233,17 +206,18 @@ export default function LocationField({
           const meta = getZoneMeta(e.target.value);
           if (meta?.lat != null) setShowMap(true);
         }}
-        aria-invalid={Boolean(error)}
+        aria-invalid={error ? true : undefined}
         aria-describedby={error ? "location-error" : "location-help"}
         className={error ? "input-error" : ""}
       >
         <option value="">Selecciona una zona del campus</option>
         {CAMPUS_ZONES.map((z) => (
-          <option key={z.value} value={z.value}>{z.label}</option>
+          <option key={z.value} value={z.value}>
+            {z.label}
+          </option>
         ))}
       </select>
 
-      {/* Detalle específico */}
       <div style={{ marginTop: "0.5rem" }}>
         <input
           id="location-detail"
@@ -258,33 +232,53 @@ export default function LocationField({
         <p
           id="location-detail-hint"
           className="text-small text-secondary"
-          style={{ marginTop: "0.25rem", color: detail.length >= 100 ? "var(--color-error)" : undefined }}
+          style={{
+            marginTop: "0.25rem",
+            color: detail.length >= 100 ? "var(--color-error)" : undefined,
+          }}
         >
           {detail.length}/100 caracteres
         </p>
       </div>
 
-      {/* Botones GPS + mapa */}
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
         <button
           type="button"
           onClick={captureGps}
           disabled={gpsStatus === "loading"}
           style={{
-            display: "flex", alignItems: "center", gap: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
             padding: "0.5rem 1rem",
             fontSize: "var(--font-size-xs)",
             border: "1px solid var(--color-border-light)",
             borderRadius: "var(--radius-sm)",
-            background: gpsStatus === "success" ? "var(--color-success-bg, #e8f5e9)" : "var(--color-bg-muted)",
-            color: gpsStatus === "success" ? "var(--color-success, #2e7d32)" : gpsStatus === "error" ? "var(--color-error)" : "var(--color-text-secondary)",
+            background:
+              gpsStatus === "success"
+                ? "var(--color-success-bg, #e8f5e9)"
+                : "var(--color-bg-muted)",
+            color:
+              gpsStatus === "success"
+                ? "var(--color-success, #2e7d32)"
+                : gpsStatus === "error"
+                  ? "var(--color-error)"
+                  : "var(--color-text-secondary)",
             cursor: gpsStatus === "loading" ? "wait" : "pointer",
             transition: "background 0.15s, color 0.15s",
           }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+            />
           </svg>
           {gpsLabel}
         </button>
@@ -294,7 +288,9 @@ export default function LocationField({
             type="button"
             onClick={openMapManually}
             style={{
-              display: "flex", alignItems: "center", gap: "0.5rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
               padding: "0.5rem 1rem",
               fontSize: "var(--font-size-xs)",
               border: "1px solid var(--color-border-light)",
@@ -312,7 +308,6 @@ export default function LocationField({
         )}
       </div>
 
-      {/* Mapa interactivo */}
       {showMap && (
         <div style={{ marginTop: "0.75rem" }}>
           <InteractiveMap
@@ -323,12 +318,13 @@ export default function LocationField({
             onLocationSelect={handleMapClick}
           />
 
-          {/* Aviso de zona */}
           {zoneHasCenter && (
             <div
               style={{
                 marginTop: "0.5rem",
-                display: "flex", alignItems: "flex-start", gap: 6,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 6,
                 padding: "6px 10px",
                 borderRadius: "var(--radius-sm)",
                 fontSize: "var(--font-size-xs)",
@@ -338,11 +334,26 @@ export default function LocationField({
                 transition: "background 0.2s, border-color 0.2s, color 0.2s",
               }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{ flexShrink: 0, marginTop: 1 }}
+              >
                 {outOfZone ? (
-                  <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>
+                  <>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </>
                 ) : (
-                  <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></>
+                  <>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </>
                 )}
               </svg>
               <span>
@@ -353,11 +364,13 @@ export default function LocationField({
             </div>
           )}
 
-          {/* Coordenadas */}
           {gpsCoords && (
             <div
               style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
                 marginTop: "0.5rem",
                 padding: "0.4rem 0.75rem",
                 background: "var(--color-bg-muted)",
@@ -369,29 +382,51 @@ export default function LocationField({
             >
               <span style={{ fontFamily: "monospace" }}>
                 {gpsCoords.latitude.toFixed(6)}, {gpsCoords.longitude.toFixed(6)}
-                {outOfZone && <span style={{ marginLeft: 6, color: "#b91c1c", fontFamily: "inherit" }}>— fuera de zona</span>}
+                {outOfZone && (
+                  <span style={{ marginLeft: 6, color: "#b91c1c", fontFamily: "inherit" }}>
+                    — fuera de zona
+                  </span>
+                )}
               </span>
               <button
                 type="button"
                 onClick={clearMap}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-hint)", padding: "0 2px", display: "flex", alignItems: "center" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-text-hint)",
+                  padding: "0 2px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
                 aria-label="Quitar ubicación del mapa"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
           )}
 
-          <p style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-hint)", marginTop: "0.25rem", textAlign: "center" }}>
+          <p
+            style={{
+              fontSize: "var(--font-size-xs)",
+              color: "var(--color-text-hint)",
+              marginTop: "0.25rem",
+              textAlign: "center",
+            }}
+          >
             Haz clic en el mapa o arrastra el marcador para ajustar la ubicación
           </p>
         </div>
       )}
 
       {error ? (
-        <p id="location-error" className="field-error-text">{error}</p>
+        <p id="location-error" className="field-error-text">
+          {error}
+        </p>
       ) : (
         <p id="location-help" className="field-hint">
           Selecciona la zona y opcionalmente añade un detalle específico.

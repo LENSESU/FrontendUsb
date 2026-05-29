@@ -4,22 +4,9 @@ import { useEffect, useState } from "react";
 import { restoreAuthSession } from "@/utils/auth";
 import { DayPicker, type DateRange } from "@daypicker/react";
 import { es } from "date-fns/locale";
+import { CAMPUS_ZONES } from "@/data/campusZones";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
-const CAMPUS_OPTIONS = [
-  "Biblioteca",
-  "Lago",
-  "Cedro",
-  "Central",
-  "Farrallones",
-  "Parqueadero_estudiantes",
-  "Parque tecnologico",
-  "Naranjos",
-  "Higuerones",
-  "Cancha",
-  "Otros",
-];
 
 type AreaInhabilitada = {
   id: string;
@@ -455,9 +442,15 @@ export default function AreasInhabilitadasHome() {
                   onChange={(e) => setForm({ ...form, lugar_campus: e.target.value })}
                 >
                   <option value="">— Sin especificar —</option>
-                  {CAMPUS_OPTIONS.map((op) => (
-                    <option key={op} value={op}>{op}</option>
+                  {CAMPUS_ZONES.map((z) => (
+                    <option key={z.value} value={z.value}>{z.label}</option>
                   ))}
+                  {form.lugar_campus &&
+                    !CAMPUS_ZONES.some((z) => z.value === form.lugar_campus) && (
+                      <option value={form.lugar_campus}>
+                        {form.lugar_campus} (valor del sistema)
+                      </option>
+                    )}
                 </select>
               </div>
 
