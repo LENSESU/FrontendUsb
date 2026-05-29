@@ -5,6 +5,11 @@
 import { useEffect, useState } from "react";
 import { restoreAuthSession, type AuthData } from "@/utils/auth";
 import { type TechnicianIncident } from "../components/TechnicianIncidentCard";
+import { hasSeenTechnicianOnboarding } from "../components/TechnicianOnboardingModal";
+import {
+  technicianOnboardingDemoCategoriesMap,
+  technicianOnboardingDemoIncident,
+} from "../components/technicianOnboardingDemo";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -26,6 +31,7 @@ export function useTechnicianAssignments() {
   const [auth, setAuth] = useState<AuthData | null>(null);
   const [incidents, setIncidents] = useState<TechnicianIncident[]>([]);
   const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({});
+  const [isOnboardingMode, setIsOnboardingMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +41,21 @@ export function useTechnicianAssignments() {
     async function loadSession() {
       const session = await restoreAuthSession();
       if (!isMounted) return;
+
+      const shouldUseDemo =
+        !!session?.accessToken &&
+        !hasSeenTechnicianOnboarding("flujo", session.email);
+
+      setIsOnboardingMode(shouldUseDemo);
       setAuth(session);
+
+      if (shouldUseDemo) {
+        setIncidents([technicianOnboardingDemoIncident]);
+        setCategoriesMap(technicianOnboardingDemoCategoriesMap);
+        setLoading(false);
+        return;
+      }
+
       if (!session?.accessToken) {
         setLoading(false);
       }
@@ -49,7 +69,7 @@ export function useTechnicianAssignments() {
   }, []);
 
   useEffect(() => {
-    if (!auth?.accessToken) return;
+    if (!auth?.accessToken || isOnboardingMode) return;
 
     let isMounted = true;
 
@@ -120,12 +140,13 @@ export function useTechnicianAssignments() {
     return () => {
       isMounted = false;
     };
-  }, [auth]);
+  }, [auth, isOnboardingMode]);
 
   return {
     auth,
     incidents,
     categoriesMap,
+    isOnboardingMode,
     loading,
     error,
   };

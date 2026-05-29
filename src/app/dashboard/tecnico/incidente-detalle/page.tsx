@@ -5,6 +5,15 @@ import dynamic from "next/dynamic";
 import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { restoreAuthSession, type AuthData } from "@/utils/auth";
+import TechnicianOnboardingModal, {
+  completeTechnicianOnboarding,
+  technicianDetailOnboardingSteps,
+} from "../components/TechnicianOnboardingModal";
+import {
+  TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID,
+  technicianOnboardingDemoCategoryName,
+  technicianOnboardingDemoDetail,
+} from "../components/technicianOnboardingDemo";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -184,10 +193,14 @@ function TecnicoIncidenteDetalleContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const incidentId = searchParams.get("id");
+  const isOnboardingDemo =
+    searchParams.get("onboarding") === "1" ||
+    incidentId === TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID;
 
   const [auth, setAuth] = useState<AuthData | null>(null);
   const [incident, setIncident] = useState<IncidentDetail | null>(null);
   const [categoryName, setCategoryName] = useState<string>("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -246,6 +259,16 @@ function TecnicoIncidenteDetalleContent() {
   }, []);
 
   useEffect(() => {
+    if (isOnboardingDemo) {
+      setBeforePhotoAvailable(true);
+      setIncident((current) => current ?? technicianOnboardingDemoDetail);
+      setCategoryName(technicianOnboardingDemoCategoryName);
+      setConfirmedAfterUrl((current) => current ?? null);
+      setShowOnboarding(true);
+      setLoading(false);
+      return;
+    }
+
     if (!auth?.accessToken || !incidentId) {
       if (!incidentId) setError("No se especificó un incidente.");
       return;
@@ -285,7 +308,7 @@ function TecnicoIncidenteDetalleContent() {
     }
 
     void fetchData();
-  }, [auth, incidentId, refreshKey]);
+  }, [auth, incidentId, isOnboardingDemo, refreshKey]);
 
   if (loading) {
     return (
@@ -316,6 +339,19 @@ function TecnicoIncidenteDetalleContent() {
   const uploadGuard = canUploadAfter(incident);
 
   async function patchIncidentStatus(nextStatus: "En_proceso" | "Resuelto") {
+    if (isOnboardingDemo) {
+      setIncident((current) =>
+        current
+          ? {
+              ...current,
+              status: nextStatus,
+              updated_at: new Date().toISOString(),
+            }
+          : current,
+      );
+      return;
+    }
+
     if (!auth?.accessToken || !incident) throw new Error("No hay sesión activa.");
     const res = await fetch(`${API}/api/v1/incidents/${incident.id}/status`, {
       method: "PATCH",
@@ -330,7 +366,7 @@ function TecnicoIncidenteDetalleContent() {
   }
 
   async function handleStatusUpdate(newStatus: "En_proceso" | "Resuelto") {
-    if (!auth?.accessToken || !incident) return;
+    if (!incident || (!isOnboardingDemo && !auth?.accessToken)) return;
     setUpdatingStatus(true);
     setStatusError(null);
     setStatusFeedback(null);
@@ -339,7 +375,9 @@ function TecnicoIncidenteDetalleContent() {
       const label = newStatus === "En_proceso" ? "En progreso" : "Resuelto";
       setStatusFeedback(`Estado actualizado a "${label}" correctamente.`);
       setTimeout(() => setStatusFeedback(null), 5000);
-      setRefreshKey((k) => k + 1);
+      if (!isOnboardingDemo) {
+        setRefreshKey((k) => k + 1);
+      }
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Error inesperado al actualizar.");
     } finally {
@@ -371,10 +409,24 @@ function TecnicoIncidenteDetalleContent() {
   }
 
   async function handleConfirmUpload() {
-    if (!pendingFile || !incident || !auth?.accessToken) return;
+    if (!pendingFile || !incident) return;
     setUploading(true);
     setImageError(null);
     setMensaje(null);
+
+    if (isOnboardingDemo) {
+      setConfirmedAfterUrl(pendingPreview);
+      setMensaje("Evidencia de practica cargada correctamente.");
+      setPendingFile(null);
+      setPendingPreview(null);
+      setUploading(false);
+      return;
+    }
+
+    if (!auth?.accessToken) {
+      setUploading(false);
+      return;
+    }
 
     try {
       const { ok, data, error: uploadErr } = await subirEvidencia(
@@ -485,8 +537,23 @@ function TecnicoIncidenteDetalleContent() {
     display: "block",
   };
 
+  function finishOnboarding() {
+    completeTechnicianOnboarding(auth?.email ?? null);
+    setShowOnboarding(false);
+    router.replace("/dashboard/tecnico");
+  }
+
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 16px 40px" }}>
+      {showOnboarding ? (
+        <TechnicianOnboardingModal
+          steps={technicianDetailOnboardingSteps}
+          completeLabel="Finalizar recorrido"
+          skipLabel="Finalizar recorrido"
+          onComplete={finishOnboarding}
+          onSkip={finishOnboarding}
+        />
+      ) : null}
 
       {/* ══ BARRA SUPERIOR ══ */}
       <div
@@ -592,7 +659,11 @@ function TecnicoIncidenteDetalleContent() {
       >
 
         {/* ════ COLUMNA 1: Información del reporte ════ */}
-        <div className="card" style={{ overflow: "visible" }}>
+        <div
+          className="card"
+          style={{ overflow: "visible" }}
+          data-onboarding="detail-report"
+        >
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
             borderBottom: "1px solid var(--color-border-light)", padding: "12px 16px",
@@ -717,7 +788,7 @@ function TecnicoIncidenteDetalleContent() {
         </div>
 
         {/* ════ COLUMNA 2: Solo previsualización de fotos ════ */}
-        <div className="card">
+        <div className="card" data-onboarding="detail-evidence">
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
             borderBottom: "1px solid var(--color-border-light)", padding: "12px 16px",
@@ -822,7 +893,7 @@ function TecnicoIncidenteDetalleContent() {
 
         {/* ════ COLUMNA 3: Gestión técnica + subida de evidencia ════ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="card">
+          <div className="card" data-onboarding="detail-management">
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
               borderBottom: "1px solid var(--color-border-light)", padding: "12px 16px",
@@ -1133,6 +1204,7 @@ function TecnicoIncidenteDetalleContent() {
           {/* ── Botón Incidente Completado ── */}
           <button
             type="button"
+            data-onboarding="detail-complete"
             disabled={incident.status !== "En_proceso" || updatingStatus}
             onClick={() => handleStatusUpdate("Resuelto")}
             style={{
