@@ -1042,8 +1042,264 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
 .modal-error .modal-stripe   { background: var(--color-error); }
 .modal-error .modal-title    { color: var(--color-text-primary); }
 
+.technician-onboarding-overlay {
+  align-items: center;
+  justify-content: flex-end;
+  background: rgba(18, 24, 38, 0.14);
+  pointer-events: none;
+}
+
+.technician-onboarding-modal {
+  position: relative;
+  z-index: 1000;
+  width: min(100%, 460px);
+  margin-right: clamp(16px, 4vw, 48px);
+  pointer-events: auto;
+}
+
+.technician-onboarding-overlay--left {
+  justify-content: flex-start;
+}
+
+.technician-onboarding-overlay--left .technician-onboarding-modal {
+  margin-right: 0;
+  margin-left: clamp(16px, 4vw, 48px);
+}
+
+.technician-onboarding-modal .modal-stripe {
+  background: var(--color-primary);
+}
+
+.technician-onboarding-body {
+  padding: 28px;
+  text-align: left;
+}
+
+.technician-onboarding-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.technician-onboarding-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.technician-onboarding-heading {
+  min-height: 136px;
+}
+
+.technician-onboarding-kicker {
+  margin-bottom: 6px;
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.technician-onboarding-count {
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-hint);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.technician-onboarding-heading h2 {
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+  font-size: 22px;
+  font-weight: var(--font-weight-bold);
+}
+
+.technician-onboarding-heading p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: 1.55;
+}
+
+.technician-onboarding-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  gap: var(--space-xs);
+  margin: var(--space-lg) 0;
+}
+
+.technician-onboarding-progress span {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border-light);
+}
+
+.technician-onboarding-progress span.is-active {
+  background: var(--color-primary);
+}
+
+.technician-onboarding-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.technician-onboarding-actions .btn-primary,
+.technician-onboarding-actions .btn-secondary {
+  min-height: 44px;
+}
+
+.technician-onboarding-skip {
+  width: 100%;
+  margin-top: var(--space-sm);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.technician-onboarding-skip:hover {
+  color: var(--color-primary);
+}
+
+.technician-onboarding-target {
+  position: relative;
+  z-index: 998;
+  scroll-margin: 96px;
+  border-radius: var(--radius-md);
+  outline: 2px solid rgba(239, 99, 15, 0.55);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 4px rgba(239, 99, 15, 0.26),
+    0 14px 34px rgba(33, 33, 33, 0.22);
+  animation: technicianOnboardingPulse 1.7s ease-in-out infinite;
+  transition:
+    box-shadow var(--transition-normal),
+    outline-color var(--transition-normal);
+}
+
+@keyframes technicianOnboardingPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(239, 99, 15, 0.22),
+      0 14px 34px rgba(33, 33, 33, 0.18);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(239, 99, 15, 0.16),
+      0 18px 42px rgba(33, 33, 33, 0.22);
+  }
+}
+
+@media (max-width: 640px) {
+  .technician-onboarding-overlay {
+    align-items: flex-end;
+    justify-content: center;
+    padding: 12px;
+    background: rgba(18, 24, 38, 0.08);
+  }
+
+  .technician-onboarding-modal {
+    width: min(100%, 380px);
+    max-height: min(46dvh, 320px);
+    margin: 0;
+  }
+
+  .technician-onboarding-overlay--left {
+    align-items: flex-start;
+  }
+
+  .technician-onboarding-overlay--left .technician-onboarding-modal {
+    margin: 0;
+  }
+
+  .technician-onboarding-body {
+    max-height: calc(min(46dvh, 320px) - 6px);
+    padding: 12px 14px;
+    overflow-y: auto;
+  }
+
+  .technician-onboarding-icon {
+    display: none;
+  }
+
+  .technician-onboarding-heading {
+    min-height: 0;
+  }
+
+  .technician-onboarding-kicker {
+    margin-bottom: 2px;
+  }
+
+  .technician-onboarding-count {
+    margin-bottom: 4px;
+  }
+
+  .technician-onboarding-heading h2 {
+    margin-bottom: 4px;
+    font-size: 16px;
+  }
+
+  .technician-onboarding-heading p {
+    font-size: var(--font-size-xs);
+    line-height: 1.35;
+  }
+
+  .technician-onboarding-progress {
+    gap: 5px;
+    margin: 10px 0;
+  }
+
+  .technician-onboarding-progress span {
+    height: 4px;
+  }
+
+  .technician-onboarding-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .technician-onboarding-actions .btn-primary,
+  .technician-onboarding-actions .btn-secondary {
+    min-height: 36px;
+    padding: 7px 8px;
+    font-size: var(--font-size-xs);
+  }
+
+  .technician-onboarding-skip {
+    display: none;
+  }
+
+  .technician-onboarding-target {
+    scroll-margin: 72px;
+  }
+}
+
+@media (max-width: 380px), (max-height: 640px) and (max-width: 640px) {
+  .technician-onboarding-modal {
+    max-height: 42dvh;
+  }
+
+  .technician-onboarding-body {
+    max-height: calc(42dvh - 6px);
+    padding: 10px 12px;
+  }
+}
+
 @media (max-width: 480px) {
   .modal-container { width: 100%; }
+  .technician-onboarding-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 @keyframes modalFadeIn {

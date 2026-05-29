@@ -1,12 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import TechnicianOnboardingModal, {
+  completeTechnicianOnboarding,
+  technicianIncidentsOnboardingSteps,
+} from "../components/TechnicianOnboardingModal";
 import TechnicianIncidentCard from "../components/TechnicianIncidentCard";
 import { useTechnicianAssignments } from "../hooks/useTechnicianAssignments";
+import { TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID } from "../components/technicianOnboardingDemo";
 
 export default function TecnicoIncidentesPage() {
   const router = useRouter();
-  const { incidents, categoriesMap, loading, error } = useTechnicianAssignments();
+  const { auth, incidents, categoriesMap, isOnboardingMode, loading, error } =
+    useTechnicianAssignments();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !error && auth) {
+      setShowOnboarding(isOnboardingMode);
+    }
+  }, [auth, isOnboardingMode, loading, error]);
+
+  function openIncident(incidentId: string) {
+    if (isOnboardingMode) {
+      router.push(
+        `/dashboard/tecnico/incidente-detalle?id=${TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID}&onboarding=1`,
+      );
+      return;
+    }
+
+    router.push(`/dashboard/tecnico/incidente-detalle?id=${incidentId}`);
+  }
+
+  function skipOnboarding() {
+    completeTechnicianOnboarding();
+    window.location.reload();
+  }
 
   if (loading) {
     return (
@@ -31,7 +61,21 @@ export default function TecnicoIncidentesPage() {
 
   return (
     <div className="container" style={{ paddingBottom: "var(--space-xl)" }}>
-      <div className="section-header" style={{ margin: "0 auto var(--space-xl)" }}>
+      {showOnboarding ? (
+        <TechnicianOnboardingModal
+          steps={technicianIncidentsOnboardingSteps}
+          completeLabel="Abrir detalle"
+          skipLabel="Omitir recorrido"
+          onComplete={() => openIncident(TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID)}
+          onSkip={skipOnboarding}
+        />
+      ) : null}
+
+      <div
+        className="section-header"
+        style={{ margin: "0 auto var(--space-xl)" }}
+        data-onboarding="incidents-header"
+      >
           <div className="flex items-center justify-center gap-sm mb-sm">
             <div className="icon-wrap-circle">
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -47,13 +91,17 @@ export default function TecnicoIncidentesPage() {
           <h1>Incidentes asignados</h1>
           <p>
             {incidents.length === 0
-              ? "No tienes incidentes asignados aun."
+              ? "No tienes incidentes asignados aún."
               : `${incidents.length} incidente${incidents.length !== 1 ? "s" : ""} asignado${incidents.length !== 1 ? "s" : ""}`}
           </p>
         </div>
 
         {incidents.length === 0 ? (
-          <div className="card" style={{ maxWidth: 420, margin: "0 auto" }}>
+          <div
+            className="card"
+            style={{ maxWidth: 420, margin: "0 auto" }}
+            data-onboarding="incidents-list"
+          >
             <div className="card-body-center">
               <div className="icon-wrap">
                 <svg width="24" height="24" viewBox="0 0 24 24">
@@ -65,12 +113,13 @@ export default function TecnicoIncidentesPage() {
                 Sin asignaciones
               </p>
               <p className="card-desc text-center" style={{ marginBottom: 0 }}>
-                Cuando el administrador te asigne un incidente aparecera aqui.
+                Cuando el administrador te asigne un incidente aparecerá aquí.
               </p>
             </div>
           </div>
         ) : (
           <div
+            data-onboarding="incidents-list"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))",
@@ -82,10 +131,8 @@ export default function TecnicoIncidentesPage() {
               <TechnicianIncidentCard
                 key={incident.id}
                 incident={incident}
-                categoryName={categoriesMap[incident.category_id] ?? "Sin categoria"}
-                onOpen={() =>
-                  router.push(`/dashboard/tecnico/incidente-detalle?id=${incident.id}`)
-                }
+                categoryName={categoriesMap[incident.category_id] ?? "Sin categoría"}
+                onOpen={() => openIncident(incident.id)}
               />
             ))}
           </div>
