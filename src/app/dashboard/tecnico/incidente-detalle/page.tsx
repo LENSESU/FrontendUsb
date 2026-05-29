@@ -416,7 +416,7 @@ function TecnicoIncidenteDetalleContent() {
 
     if (isOnboardingDemo) {
       setConfirmedAfterUrl(pendingPreview);
-      setMensaje("Evidencia de practica cargada correctamente.");
+      setMensaje("Evidencia de práctica cargada correctamente.");
       setPendingFile(null);
       setPendingPreview(null);
       setUploading(false);
@@ -538,7 +538,7 @@ function TecnicoIncidenteDetalleContent() {
   };
 
   function finishOnboarding() {
-    completeTechnicianOnboarding(auth?.email ?? null);
+    completeTechnicianOnboarding();
     setShowOnboarding(false);
     router.replace("/dashboard/tecnico");
   }

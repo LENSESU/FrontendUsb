@@ -44,7 +44,7 @@ export function useTechnicianAssignments() {
 
       const shouldUseDemo =
         !!session?.accessToken &&
-        !hasSeenTechnicianOnboarding("flujo", session.email);
+        !hasSeenTechnicianOnboarding();
 
       setIsOnboardingMode(shouldUseDemo);
       setAuth(session);
@@ -90,7 +90,7 @@ export function useTechnicianAssignments() {
         ]);
 
         if (!incRes.ok) throw new Error("No se pudieron cargar los incidentes.");
-        if (!catRes.ok) throw new Error("No se pudieron cargar las categorias.");
+        if (!catRes.ok) throw new Error("No se pudieron cargar las categorías.");
 
         const incidentsData = await incRes.json();
         const categoriesData = await catRes.json();
@@ -126,7 +126,7 @@ export function useTechnicianAssignments() {
         setError(
           err instanceof Error
             ? err.message
-            : "No se pudieron cargar las asignaciones del tecnico.",
+            : "No se pudieron cargar las asignaciones del técnico.",
         );
       } finally {
         if (isMounted) {

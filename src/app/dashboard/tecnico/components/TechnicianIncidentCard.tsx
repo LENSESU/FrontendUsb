@@ -94,7 +94,7 @@ export default function TechnicianIncidentCard({
             <circle cx="12" cy="10" r="3" />
           </svg>
           <span className="text-small text-secondary">
-            {incident.campus_place || "Sin ubicacion"}
+            {incident.campus_place || "Sin ubicación"}
           </span>
         </div>
 

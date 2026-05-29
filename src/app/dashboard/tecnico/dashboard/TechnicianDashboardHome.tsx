@@ -30,7 +30,6 @@ export default function TechnicianDashboardHome() {
   const router = useRouter();
 
   const [incidents, setIncidents] = useState<TechnicianAssignment[]>([]);
-  const [technicianEmail, setTechnicianEmail] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isOnboardingMode, setIsOnboardingMode] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -51,12 +50,7 @@ export default function TechnicianDashboardHome() {
           return;
         }
 
-        setTechnicianEmail(session.email);
-
-        const shouldUseDemo = !hasSeenTechnicianOnboarding(
-          "flujo",
-          session.email,
-        );
+        const shouldUseDemo = !hasSeenTechnicianOnboarding();
 
         if (shouldUseDemo) {
           setIncidents([technicianOnboardingDemoAssignment]);
@@ -123,7 +117,7 @@ export default function TechnicianDashboardHome() {
   }
 
   function skipOnboarding() {
-    completeTechnicianOnboarding(technicianEmail);
+    completeTechnicianOnboarding();
     setShowOnboarding(false);
     setIsOnboardingMode(false);
     setReloadKey((current) => current + 1);
@@ -141,7 +135,7 @@ export default function TechnicianDashboardHome() {
         }}
       >
         <span className="spinner spinner-dark" />
-        <p className="text-secondary">Cargando panel tecnico…</p>
+        <p className="text-secondary">Cargando panel técnico…</p>
       </div>
     );
   }
@@ -212,8 +206,8 @@ export default function TechnicianDashboardHome() {
             </p>
             <p className="text-xs text-secondary">
               {recentIncidents.length === 0
-                ? "No tienes incidentes asignados todavia."
-                : "Ultimos incidentes asignados por el administrador."}
+                ? "No tienes incidentes asignados todavía."
+                : "Últimos incidentes asignados por el administrador."}
             </p>
           </div>
 
@@ -236,7 +230,7 @@ export default function TechnicianDashboardHome() {
         {recentIncidents.length === 0 ? (
           <div className="card-body-center">
             <p className="card-desc" style={{ marginBottom: 0 }}>
-              Cuando tengas asignaciones apareceran aqui.
+              Cuando tengas asignaciones aparecerán aquí.
             </p>
           </div>
         ) : (

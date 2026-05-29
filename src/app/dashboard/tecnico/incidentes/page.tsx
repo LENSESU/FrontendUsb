@@ -34,7 +34,7 @@ export default function TecnicoIncidentesPage() {
   }
 
   function skipOnboarding() {
-    completeTechnicianOnboarding(auth?.email ?? null);
+    completeTechnicianOnboarding();
     window.location.reload();
   }
 
@@ -91,7 +91,7 @@ export default function TecnicoIncidentesPage() {
           <h1>Incidentes asignados</h1>
           <p>
             {incidents.length === 0
-              ? "No tienes incidentes asignados aun."
+              ? "No tienes incidentes asignados aún."
               : `${incidents.length} incidente${incidents.length !== 1 ? "s" : ""} asignado${incidents.length !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -113,7 +113,7 @@ export default function TecnicoIncidentesPage() {
                 Sin asignaciones
               </p>
               <p className="card-desc text-center" style={{ marginBottom: 0 }}>
-                Cuando el administrador te asigne un incidente aparecera aqui.
+                Cuando el administrador te asigne un incidente aparecerá aquí.
               </p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function TecnicoIncidentesPage() {
               <TechnicianIncidentCard
                 key={incident.id}
                 incident={incident}
-                categoryName={categoriesMap[incident.category_id] ?? "Sin categoria"}
+                categoryName={categoriesMap[incident.category_id] ?? "Sin categoría"}
                 onOpen={() => openIncident(incident.id)}
               />
             ))}

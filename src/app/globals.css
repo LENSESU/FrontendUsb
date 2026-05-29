@@ -1057,6 +1057,15 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
   pointer-events: auto;
 }
 
+.technician-onboarding-overlay--left {
+  justify-content: flex-start;
+}
+
+.technician-onboarding-overlay--left .technician-onboarding-modal {
+  margin-right: 0;
+  margin-left: clamp(16px, 4vw, 48px);
+}
+
 .technician-onboarding-modal .modal-stripe {
   background: var(--color-primary);
 }
@@ -1198,6 +1207,9 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
     justify-content: center;
   }
   .technician-onboarding-modal { margin: 0; }
+  .technician-onboarding-overlay--left .technician-onboarding-modal {
+    margin: 0;
+  }
   .technician-onboarding-body { padding: var(--space-lg); }
   .technician-onboarding-actions { grid-template-columns: 1fr; }
 }

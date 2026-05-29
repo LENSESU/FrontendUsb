@@ -6,9 +6,8 @@ export type TechnicianOnboardingStep = {
   title: string;
   text: string;
   target: string;
+  placement?: "left" | "right";
 };
-
-type TechnicianOnboardingScope = "flujo" | "panel" | "incidentes";
 
 type TechnicianOnboardingModalProps = {
   steps: TechnicianOnboardingStep[];
@@ -18,39 +17,29 @@ type TechnicianOnboardingModalProps = {
   skipLabel?: string;
 };
 
-const ONBOARDING_KEY_PREFIX = "technician_onboarding_seen";
+const TECHNICIAN_ONBOARDING_STORAGE_KEY = "_onboarding_tecnico_";
+const LEGACY_ONBOARDING_KEY_PREFIX = "technician_onboarding_seen";
 
-function getOnboardingStorageKey(
-  scope: TechnicianOnboardingScope,
-  email: string | null,
-): string {
-  return `${ONBOARDING_KEY_PREFIX}:${scope}:${email ?? "current"}`;
+function removeLegacyOnboardingKeys(): void {
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith(LEGACY_ONBOARDING_KEY_PREFIX))
+    .forEach((key) => localStorage.removeItem(key));
 }
 
-export function hasSeenTechnicianOnboarding(
-  scope: TechnicianOnboardingScope,
-  email: string | null,
-): boolean {
-  return localStorage.getItem(getOnboardingStorageKey(scope, email)) === "true";
+export function hasSeenTechnicianOnboarding(): boolean {
+  removeLegacyOnboardingKeys();
+  return localStorage.getItem(TECHNICIAN_ONBOARDING_STORAGE_KEY) === "true";
 }
 
-export function markTechnicianOnboardingSeen(
-  scope: TechnicianOnboardingScope,
-  email: string | null,
-): void {
-  localStorage.setItem(getOnboardingStorageKey(scope, email), "true");
-}
-
-export function completeTechnicianOnboarding(email: string | null): void {
-  markTechnicianOnboardingSeen("flujo", email);
-  markTechnicianOnboardingSeen("panel", email);
-  markTechnicianOnboardingSeen("incidentes", email);
+export function completeTechnicianOnboarding(): void {
+  removeLegacyOnboardingKeys();
+  localStorage.setItem(TECHNICIAN_ONBOARDING_STORAGE_KEY, "true");
 }
 
 export const technicianPanelOnboardingSteps: TechnicianOnboardingStep[] = [
   {
     title: "Este es tu panel",
-    text: "Aqui ves un resumen de tus asignaciones activas antes de entrar al detalle.",
+    text: "Aquí ves un resumen de tus asignaciones activas antes de entrar al detalle.",
     target: '[data-onboarding="panel-stats"]',
   },
   {
@@ -60,7 +49,7 @@ export const technicianPanelOnboardingSteps: TechnicianOnboardingStep[] = [
   },
   {
     title: "Incidente asignado",
-    text: "Abre este incidente de practica para revisar el reporte y simular la atencion tecnica.",
+    text: "Abre este incidente de práctica para revisar el reporte y simular la atención técnica.",
     target: '[data-onboarding="panel-recent"]',
   },
 ];
@@ -68,12 +57,12 @@ export const technicianPanelOnboardingSteps: TechnicianOnboardingStep[] = [
 export const technicianIncidentsOnboardingSteps: TechnicianOnboardingStep[] = [
   {
     title: "Incidentes asignados",
-    text: "Aqui encuentras las tareas que el administrador te asigno.",
+    text: "Aquí encuentras las tareas que el administrador te asignó.",
     target: '[data-onboarding="incidents-header"]',
   },
   {
     title: "Prioridad y estado",
-    text: "Identifica rapidamente que atender primero segun prioridad y estado.",
+    text: "Identifica rápidamente qué atender primero según prioridad y estado.",
     target: '[data-onboarding="incidents-list"]',
   },
   {
@@ -86,23 +75,25 @@ export const technicianIncidentsOnboardingSteps: TechnicianOnboardingStep[] = [
 export const technicianDetailOnboardingSteps: TechnicianOnboardingStep[] = [
   {
     title: "Reporte del estudiante",
-    text: "Primero revisa la categoria, descripcion y ubicacion del problema reportado.",
+    text: "Primero revisa la categoría, descripción y ubicación del problema reportado.",
     target: '[data-onboarding="detail-report"]',
   },
   {
     title: "Evidencia visual",
-    text: "Compara la evidencia inicial con la foto final que subiras al cerrar el caso.",
+    text: "Compara la evidencia inicial con la foto final que subirás al cerrar el caso.",
     target: '[data-onboarding="detail-evidence"]',
   },
   {
-    title: "Gestion tecnica",
-    text: "Inicia la atencion, adjunta evidencia y cambia el estado cuando termines.",
+    title: "Gestión técnica",
+    text: "Inicia la atención, adjunta evidencia y cambia el estado cuando termines.",
     target: '[data-onboarding="detail-management"]',
+    placement: "left",
   },
   {
     title: "Cerrar el incidente",
     text: "Cuando el trabajo quede listo, marca el incidente como completado y vuelve al panel.",
     target: '[data-onboarding="detail-complete"]',
+    placement: "left",
   },
 ];
 
@@ -117,6 +108,8 @@ export default function TechnicianOnboardingModal({
   const step = steps[stepIndex];
   const isLastStep = stepIndex === steps.length - 1;
   const handleSkip = onSkip ?? onComplete;
+  const placementClass =
+    step.placement === "left" ? " technician-onboarding-overlay--left" : "";
 
   const goToPreviousStep = () => {
     setStepIndex((current) => Math.max(current - 1, 0));
@@ -172,7 +165,7 @@ export default function TechnicianOnboardingModal({
 
   return (
     <div
-      className="modal-overlay technician-onboarding-overlay"
+      className={`modal-overlay technician-onboarding-overlay${placementClass}`}
       role="dialog"
       aria-modal="true"
     >
@@ -187,7 +180,7 @@ export default function TechnicianOnboardingModal({
           </div>
 
           <div className="technician-onboarding-heading" aria-live="polite">
-            <p className="technician-onboarding-kicker">Guia tecnico</p>
+            <p className="technician-onboarding-kicker">Guía técnica</p>
             <p className="technician-onboarding-count">
               Paso {stepIndex + 1} de {steps.length}
             </p>

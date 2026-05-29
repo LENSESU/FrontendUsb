@@ -29,7 +29,7 @@ export const technicianOnboardingDemoDetail = {
   ...technicianOnboardingDemoIncident,
   updated_at: "2026-05-28T17:00:00.000Z",
   description:
-    "Basura acumulada en el piso y luminaria intermitente cerca del salon 208.",
+    "Basura acumulada en el piso y luminaria intermitente cerca del salón 208.",
   latitude: 3.34664,
   longitude: -76.53231,
   student_id: "onboarding-student",
