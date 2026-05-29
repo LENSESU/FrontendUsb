@@ -1,0 +1,93 @@
+{
+  "zoneRadiusM": 60,
+  "usbCenter": {
+    "lat": 3.3453045315865504,
+    "lng": -76.5440884444818
+  },
+  "zones": [
+    {
+      "value": "Biblioteca",
+      "label": "Biblioteca",
+      "lat": 3.34491667,
+      "lng": -76.54394444
+    },
+    {
+      "value": "Lago",
+      "label": "Lago",
+      "lat": 3.34427778,
+      "lng": -76.54291667
+    },
+    {
+      "value": "Cedro",
+      "label": "Cedro",
+      "lat": 3.34480556,
+      "lng": -76.54291667
+    },
+    {
+      "value": "Central",
+      "label": "Central",
+      "lat": 3.34577778,
+      "lng": -76.54436111
+    },
+    {
+      "value": "Farrallones",
+      "label": "Farrallones",
+      "lat": 3.34576614,
+      "lng": -76.54566534
+    },
+    {
+      "value": "Parqueadero_estudiantes",
+      "label": "Parqueadero Estudiantes",
+      "lat": 3.34347222,
+      "lng": -76.54291667
+    },
+    {
+      "value": "Parque tecnologico",
+      "label": "Parque Tecnológico",
+      "lat": 3.34380556,
+      "lng": -76.54186111
+    },
+    {
+      "value": "Naranjos",
+      "label": "Naranjos",
+      "lat": 3.34513889,
+      "lng": -76.54155556
+    },
+    {
+      "value": "Higuerones",
+      "label": "Higuerones",
+      "lat": 3.34438889,
+      "lng": -76.54138889
+    },
+    {
+      "value": "Cancha",
+      "label": "Cancha",
+      "lat": 3.34425,
+      "lng": -76.54497222
+    },
+    {
+      "value": "Cerezos",
+      "label": "Cerezos",
+      "lat": 3.345,
+      "lng": -76.54469444
+    },
+    {
+      "value": "Horizontes",
+      "label": "Horizontes",
+      "lat": 3.34577778,
+      "lng": -76.54436111
+    },
+    {
+      "value": "Palmas",
+      "label": "Palmas",
+      "lat": 3.34522222,
+      "lng": -76.54516667
+    },
+    {
+      "value": "Otros",
+      "label": "Otros",
+      "lat": null,
+      "lng": null
+    }
+  ]
+}
