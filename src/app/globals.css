@@ -1200,17 +1200,110 @@ p  { font-size: var(--font-size-body); color: var(--color-text-primary); }
   }
 }
 
-@media (max-width: 480px) {
-  .modal-container { width: 100%; }
+@media (max-width: 640px) {
   .technician-onboarding-overlay {
     align-items: flex-end;
     justify-content: center;
+    padding: 12px;
+    background: rgba(18, 24, 38, 0.08);
   }
-  .technician-onboarding-modal { margin: 0; }
+
+  .technician-onboarding-modal {
+    width: min(100%, 420px);
+    max-height: min(62dvh, 420px);
+    margin: 0;
+  }
+
   .technician-onboarding-overlay--left .technician-onboarding-modal {
     margin: 0;
   }
-  .technician-onboarding-body { padding: var(--space-lg); }
+
+  .technician-onboarding-body {
+    max-height: calc(min(62dvh, 420px) - 6px);
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .technician-onboarding-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+  }
+
+  .technician-onboarding-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .technician-onboarding-heading {
+    min-height: 0;
+  }
+
+  .technician-onboarding-kicker {
+    margin-bottom: 4px;
+  }
+
+  .technician-onboarding-count {
+    margin-bottom: 6px;
+  }
+
+  .technician-onboarding-heading h2 {
+    margin-bottom: 6px;
+    font-size: 18px;
+  }
+
+  .technician-onboarding-heading p {
+    font-size: var(--font-size-small);
+    line-height: 1.45;
+  }
+
+  .technician-onboarding-progress {
+    gap: 6px;
+    margin: 12px 0;
+  }
+
+  .technician-onboarding-progress span {
+    height: 5px;
+  }
+
+  .technician-onboarding-actions {
+    gap: 8px;
+  }
+
+  .technician-onboarding-actions .btn-primary,
+  .technician-onboarding-actions .btn-secondary {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: var(--font-size-xs);
+  }
+
+  .technician-onboarding-skip {
+    margin-top: 6px;
+    font-size: var(--font-size-xs);
+  }
+
+  .technician-onboarding-target {
+    scroll-margin: 72px;
+  }
+}
+
+@media (max-width: 380px), (max-height: 640px) and (max-width: 640px) {
+  .technician-onboarding-modal {
+    max-height: 56dvh;
+  }
+
+  .technician-onboarding-body {
+    max-height: calc(56dvh - 6px);
+    padding: 14px;
+  }
+
+  .technician-onboarding-icon {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-container { width: 100%; }
   .technician-onboarding-actions { grid-template-columns: 1fr; }
 }
 
