@@ -10,6 +10,7 @@ import {
   type AuthData,
 } from "@/utils/auth";
 import TechnicianSidebar from "@/components/TechnicianSidebar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function TecnicoDashboardLayout({
   children,
@@ -128,8 +129,7 @@ export default function TecnicoDashboardLayout({
             USB<span style={{ color: "var(--color-primary)" }}>Lens</span>
           </span>
 
-          {/* Placeholder derecho para centrar el título */}
-          <div style={{ width: 40 }} aria-hidden="true" />
+          <ThemeToggle compact />
         </header>
 
         {children}

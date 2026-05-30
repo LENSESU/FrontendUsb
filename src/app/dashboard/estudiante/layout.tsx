@@ -10,6 +10,7 @@ import {
   type AuthData,
 } from "@/utils/auth";
 import StudentSidebar from "@/components/StudentSidebar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function EstudianteDashboardLayout({
   children,
@@ -105,7 +106,7 @@ export default function EstudianteDashboardLayout({
             USB<span style={{ color: "var(--color-primary)" }}>Lens</span>
           </span>
 
-          <div style={{ width: 40 }} aria-hidden="true" />
+          <ThemeToggle compact />
         </header>
 
         {children}

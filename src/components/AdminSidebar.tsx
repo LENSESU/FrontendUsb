@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthData } from "@/utils/auth";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Props = {
   auth: AuthData | null;
@@ -168,6 +169,7 @@ export default function AdminSidebar({ auth, onLogout, isLoggingOut, isOpen, onC
 
       {/* Footer */}
       <div className="sidebar-footer">
+        <ThemeToggle />
         {auth && (
           <Link
             href="/dashboard/admin/perfil"

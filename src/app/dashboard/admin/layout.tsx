@@ -10,6 +10,7 @@ import {
   type AuthData,
 } from "@/utils/auth";
 import AdminSidebar from "@/components/AdminSidebar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function AdminDashboardLayout({
   children,
@@ -117,7 +118,7 @@ export default function AdminDashboardLayout({
             USB<span style={{ color: "var(--color-primary)" }}>Lens</span>
           </span>
 
-          <div style={{ width: 40 }} aria-hidden="true" />
+          <ThemeToggle compact />
         </header>
 
         {children}
