@@ -41,6 +41,22 @@ type FormErrors = {
   fecha_fin?: string;
 };
 
+type IncidenteRelacionado = {
+  id: string;
+  description: string;
+  status: string;
+  priority: string;
+  created_at: string;
+};
+
+type AreaIncidentesMap = Record<string, number>;
+
+type IncidentesModalState = {
+  open: boolean;
+  areaId: string | null;
+  areaNombre: string;
+};
+
 const DEFAULT_FORM: FormState = {
   nombre: "",
   motivo: "",
@@ -126,6 +142,22 @@ export default function AreasInhabilitadasHome() {
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(undefined);
   const [appliedRange, setAppliedRange] = useState<DateRange | undefined>(undefined);
 
+  const [incidentesCount, setIncidentesCount] =
+  useState<AreaIncidentesMap>({});
+
+  const [incidentesArea, setIncidentesArea] =
+    useState<IncidenteRelacionado[]>([]);
+
+  const [loadingIncidentes, setLoadingIncidentes] =
+    useState(false);
+
+  const [incidentesModal, setIncidentesModal] =
+    useState<IncidentesModalState>({
+      open: false,
+      areaId: null,
+      areaNombre: "",
+    });
+
   useEffect(() => {
     // Propósito: ajustar UI responsiva (móvil vs escritorio) sin dependencias extra.
     // Nota: matchMedia solo existe en navegador; este componente es client-only.
@@ -145,6 +177,31 @@ export default function AreasInhabilitadasHome() {
     return session?.accessToken ?? null;
   }
 
+  async function loadIncidentesByArea(
+    areaId: string
+  ): Promise<IncidenteRelacionado[]> {
+    const token = await getToken();
+
+    if (!token) return [];
+
+    const res = await fetch(
+      `${API}/api/v1/areas-inhabilitadas/${areaId}/incidentes`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        "No fue posible cargar los incidentes asociados."
+      );
+    }
+
+    return await res.json();
+  }
+
   async function loadAreas() {
     setLoading(true);
     setError(null);
@@ -157,7 +214,28 @@ export default function AreasInhabilitadasHome() {
       );
       if (!res.ok) throw new Error("Error al cargar las áreas inhabilitadas.");
       const data = await res.json();
-      setAreas(data.items ?? []);
+
+      const loadedAreas = data.items ?? [];
+
+      setAreas(loadedAreas);
+
+      const counts: AreaIncidentesMap = {};
+
+      await Promise.all(
+        loadedAreas.map(async (area: AreaInhabilitada) => {
+          try {
+            const incidents =
+              await loadIncidentesByArea(area.id);
+
+            counts[area.id] = incidents.length;
+          } catch {
+            counts[area.id] = 0;
+          }
+        })
+      );
+
+      setIncidentesCount(counts);
+
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error inesperado.");
     } finally {
@@ -193,6 +271,44 @@ export default function AreasInhabilitadasHome() {
     setEditingId(null);
     setForm(DEFAULT_FORM);
     setFormErrors({});
+  }
+
+  async function openIncidentesModal(
+    areaId: string,
+    areaNombre: string
+  ) {
+    try {
+      setLoadingIncidentes(true);
+
+      const incidents =
+        await loadIncidentesByArea(areaId);
+
+      setIncidentesArea(incidents);
+
+      setIncidentesModal({
+        open: true,
+        areaId,
+        areaNombre,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Error cargando incidentes."
+      );
+    } finally {
+      setLoadingIncidentes(false);
+    }
+  }
+
+  function closeIncidentesModal() {
+    setIncidentesModal({
+      open: false,
+      areaId: null,
+      areaNombre: "",
+    });
+
+    setIncidentesArea([]);
   }
 
   function validateForm(): FormErrors {
@@ -680,7 +796,7 @@ export default function AreasInhabilitadasHome() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-small)" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid var(--color-border-light)" }}>
-                  {["Nombre", "Motivo", "Lugar", "Inicio", "Fin estimado", "Estado", "Acciones"].map((h) => (
+                  {["Nombre", "Motivo", "Lugar", "Inicio", "Fin estimado", "Estado", "Incidentes", "Acciones"].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -736,6 +852,42 @@ export default function AreasInhabilitadasHome() {
                       >
                         {area.activa ? "Inhabilitada" : "Rehabilitada"}
                       </span>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            minWidth: "28px",
+                            textAlign: "center",
+                            borderRadius: "999px",
+                            padding: "4px 8px",
+                            background:
+                              (incidentesCount[area.id] ?? 0) > 0
+                                ? "#FEE2E2"
+                                : "#F3F4F6",
+                          }}
+                        >
+                          {incidentesCount[area.id] ?? 0}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openIncidentesModal(
+                              area.id,
+                              area.nombre
+                            )
+                          }
+                        >
+                          Ver
+                        </button>
+                      </div>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: "8px" }}>
@@ -846,6 +998,27 @@ export default function AreasInhabilitadasHome() {
                 <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-small)", marginBottom: "8px" }}>
                   <strong>Motivo:</strong> {area.motivo}
                 </p>
+                <p
+                  style={{
+                    color: "var(--color-text-secondary)",
+                    fontSize: "var(--font-size-small)",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <strong>Incidentes:</strong>{" "}
+                  {incidentesCount[area.id] ?? 0}
+                </p>
+
+                <button
+                  onClick={() =>
+                    openIncidentesModal(
+                      area.id,
+                      area.nombre
+                    )
+                  }
+                >
+                  Ver incidentes
+                </button>
 
                 {area.lugar_campus && (
                   <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-small)", marginBottom: "4px" }}>
@@ -939,6 +1112,265 @@ export default function AreasInhabilitadasHome() {
         </>
       )}
 
+      {incidentesModal.open && (
+        <div
+          className="incidentes-modal-overlay"
+          onClick={closeIncidentesModal}
+        >
+          <div
+            className="card incidentes-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              borderRadius: "16px",
+              padding: "0",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                padding: "20px 24px 16px",
+                borderBottom: "1px solid #F3F4F6",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: "0 0 6px 0",
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    color: "#111827",
+                  }}
+                >
+                  Incidentes relacionados
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#6B7280",
+                    }}
+                  >
+                    Área inhabilitada:
+                  </span>
+                  <span
+                    style={{
+                      background: "#FFF7ED",
+                      color: "#EA580C",
+                      border: "1px solid #FED7AA",
+                      padding: "2px 10px",
+                      borderRadius: "999px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {incidentesModal.areaNombre}
+                  </span>
+                </div>
+              </div>
+              {/* Botón X */}
+              <button
+                onClick={closeIncidentesModal}
+                style={{
+                  background: "#F3F4F6",
+                  border: "none",
+                  borderRadius: "8px",
+                  width: "32px",
+                  height: "32px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "16px",
+                  color: "#6B7280",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "#E5E7EB";
+                  (e.currentTarget as HTMLButtonElement).style.color = "#111827";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "#F3F4F6";
+                  (e.currentTarget as HTMLButtonElement).style.color = "#6B7280";
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+              {loadingIncidentes ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "40px 0",
+                    color: "#9CA3AF",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      border: "3px solid #F3F4F6",
+                      borderTop: "3px solid #EA580C",
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                    }}
+                  />
+                  <span style={{ fontSize: "14px" }}>Cargando incidentes...</span>
+                </div>
+              ) : incidentesArea.length === 0 ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "40px 24px",
+                    background: "#F9FAFB",
+                    borderRadius: "12px",
+                    border: "1px dashed #D1D5DB",
+                  }}
+                >
+                  <div style={{ fontSize: "32px", marginBottom: "8px" }}>📋</div>
+                  <p style={{ margin: 0, color: "#6B7280", fontSize: "14px" }}>
+                    No existen incidentes asociados a esta área.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {incidentesArea.map((incident) => {
+                    const priorityConfig = {
+                      HIGH:   { bg: "#FEE2E2", color: "#DC2626", label: "Alta",  dot: "🔴" },
+                      MEDIUM: { bg: "#FEF3C7", color: "#D97706", label: "Media", dot: "🟡" },
+                      LOW:    { bg: "#DCFCE7", color: "#15803D", label: "Baja",  dot: "🟢" },
+                    }[incident.priority] ?? { bg: "#F3F4F6", color: "#6B7280", label: incident.priority, dot: "⚪" };
+
+                    return (
+                      <div
+                        key={incident.id}
+                        style={{
+                          border: "1px solid #E5E7EB",
+                          borderLeft: `4px solid ${priorityConfig.color}`,
+                          borderRadius: "12px",
+                          padding: "16px",
+                          background: "#FAFAFA",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: "0 0 12px 0",
+                            fontSize: "15px",
+                            fontWeight: 600,
+                            color: "#111827",
+                          }}
+                        >
+                          {incident.description || "Incidente sin descripción"}
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              background: "#DBEAFE",
+                              color: "#1D4ED8",
+                              padding: "3px 10px",
+                              borderRadius: "999px",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {incident.status}
+                          </span>
+                          <span
+                            style={{
+                              background: priorityConfig.bg,
+                              color: priorityConfig.color,
+                              padding: "3px 10px",
+                              borderRadius: "999px",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {priorityConfig.dot} {priorityConfig.label}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "4px",
+                          }}
+                        >
+                          <span style={{ fontSize: "13px", color: "#6B7280" }}>
+                            {new Date(incident.created_at).toLocaleString("es-CO", {
+                              day: "2-digit", month: "short", year: "numeric",
+                              hour: "2-digit", minute: "2-digit",
+                            })}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "#D1D5DB",
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            #{incident.id.slice(0, 8)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ── FOOTER ── */}
+            <div
+              style={{
+                padding: "16px 24px",
+                borderTop: "1px solid #F3F4F6",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={closeIncidentesModal}
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#EA580C",
+                  color: "white",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.background = "#C2410C")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.background = "#EA580C")
+                }
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Responsive style override */}
       <style>{`
         #areas-table-desktop { display: block; }
@@ -980,10 +1412,28 @@ export default function AreasInhabilitadasHome() {
           overflow: auto;
           padding: 6px;
         }
+        .incidentes-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,.45);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 999;
+        }
+
+        .incidentes-modal {
+          width: min(700px, 95vw);
+          max-height: 80vh;
+          overflow-y: auto;
+        }
         @media (max-width: 640px) {
           .range-modal-body :global(.rdp) {
             width: 100%;
           }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
