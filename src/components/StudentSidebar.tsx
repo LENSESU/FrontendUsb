@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthData } from "@/utils/auth";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Props = {
   auth: AuthData | null;
@@ -137,6 +138,7 @@ export default function StudentSidebar({ auth, onLogout, isLoggingOut, isOpen, o
 
       {/* Footer */}
       <div className="sidebar-footer">
+        <ThemeToggle />
         {auth && (
           <div className="sidebar-user">
             <div className="sidebar-user-avatar" aria-hidden="true">

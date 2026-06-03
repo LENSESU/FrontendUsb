@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { IncidentPriorityBadge } from "@/components/IncidentPriorityBadge";
 import { IncidentStatusBadge } from "@/components/IncidentStatusBadge";
 import { restoreAuthSession } from "@/utils/auth";
+import TechnicianOnboardingModal, {
+  completeTechnicianOnboarding,
+  hasSeenTechnicianOnboarding,
+  technicianPanelOnboardingSteps,
+} from "../components/TechnicianOnboardingModal";
+import {
+  TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID,
+  technicianOnboardingDemoAssignment,
+} from "../components/technicianOnboardingDemo";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -21,6 +30,9 @@ export default function TechnicianDashboardHome() {
   const router = useRouter();
 
   const [incidents, setIncidents] = useState<TechnicianAssignment[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isOnboardingMode, setIsOnboardingMode] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +50,18 @@ export default function TechnicianDashboardHome() {
           return;
         }
 
+        const shouldUseDemo = !hasSeenTechnicianOnboarding();
+
+        if (shouldUseDemo) {
+          setIncidents([technicianOnboardingDemoAssignment]);
+          setShowOnboarding(true);
+          setIsOnboardingMode(true);
+          setLoading(false);
+          return;
+        }
+
+        setIsOnboardingMode(false);
+
         const res = await fetch(
           `${API}/api/v1/dashboard/technician/assignments`,
           {
@@ -54,6 +78,7 @@ export default function TechnicianDashboardHome() {
         const data = await res.json();
         const assignments = Array.isArray(data) ? data : data.items || [];
         setIncidents(assignments);
+        setShowOnboarding(false);
       } catch (err) {
         setError(
           err instanceof Error
@@ -66,7 +91,7 @@ export default function TechnicianDashboardHome() {
     }
 
     fetchAssignments();
-  }, []);
+  }, [reloadKey]);
 
   const statusCounts = useMemo(() => {
     const counts = { total: incidents.length, nuevo: 0, enProceso: 0, resuelto: 0 };
@@ -80,6 +105,24 @@ export default function TechnicianDashboardHome() {
 
   const recentIncidents = incidents.slice(0, 5);
 
+  function openIncident(incidentId: string) {
+    if (isOnboardingMode) {
+      router.push(
+        `/dashboard/tecnico/incidente-detalle?id=${TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID}&onboarding=1`,
+      );
+      return;
+    }
+
+    router.push(`/dashboard/tecnico/incidente-detalle?id=${incidentId}`);
+  }
+
+  function skipOnboarding() {
+    completeTechnicianOnboarding();
+    setShowOnboarding(false);
+    setIsOnboardingMode(false);
+    setReloadKey((current) => current + 1);
+  }
+
   if (loading) {
     return (
       <div
@@ -92,7 +135,7 @@ export default function TechnicianDashboardHome() {
         }}
       >
         <span className="spinner spinner-dark" />
-        <p className="text-secondary">Cargando panel tecnico…</p>
+        <p className="text-secondary">Cargando panel técnico…</p>
       </div>
     );
   }
@@ -109,6 +152,15 @@ export default function TechnicianDashboardHome() {
 
   return (
     <div className="container" style={{ paddingBottom: "var(--space-xl)" }}>
+      {showOnboarding ? (
+        <TechnicianOnboardingModal
+          steps={technicianPanelOnboardingSteps}
+          completeLabel="Abrir incidente"
+          skipLabel="Omitir recorrido"
+          onComplete={() => openIncident(TECHNICIAN_ONBOARDING_DEMO_INCIDENT_ID)}
+          onSkip={skipOnboarding}
+        />
+      ) : null}
 
       {/* ── Título ── */}
       <div style={{ marginBottom: "var(--space-lg)" }}>
@@ -121,13 +173,13 @@ export default function TechnicianDashboardHome() {
       </div>
 
       {/* ── Grid de estadísticas: 2 cols en mobile, 4 en desktop ── */}
-      <div className="tech-stats-grid">
+      <div className="tech-stats-grid" data-onboarding="panel-stats">
         <div className="card tech-stat-card">
           <p className="stat-label">Total asignados</p>
           <p className="stat-value">{statusCounts.total}</p>
         </div>
 
-        <div className="card tech-stat-card">
+        <div className="card tech-stat-card" data-onboarding="panel-status">
           <p className="stat-label">En progreso</p>
           <p className="stat-value">{statusCounts.enProceso}</p>
         </div>
@@ -144,7 +196,7 @@ export default function TechnicianDashboardHome() {
       </div>
 
       {/* ── Card de incidentes recientes ── */}
-      <div className="card" style={{ padding: 16 }}>
+      <div className="card" style={{ padding: 16 }} data-onboarding="panel-recent">
 
         {/* Cabecera */}
         <div className="tech-incidents-header">
@@ -154,15 +206,21 @@ export default function TechnicianDashboardHome() {
             </p>
             <p className="text-xs text-secondary">
               {recentIncidents.length === 0
-                ? "No tienes incidentes asignados todavia."
-                : "Ultimos incidentes asignados por el administrador."}
+                ? "No tienes incidentes asignados todavía."
+                : "Últimos incidentes asignados por el administrador."}
             </p>
           </div>
 
           <button
             type="button"
             className="btn-secondary btn-secondary-compact"
-            onClick={() => router.push("/dashboard/tecnico/incidentes")}
+            onClick={() =>
+              router.push(
+                isOnboardingMode
+                  ? "/dashboard/tecnico/incidentes?onboarding=1"
+                  : "/dashboard/tecnico/incidentes",
+              )
+            }
           >
             Ver todos
           </button>
@@ -172,7 +230,7 @@ export default function TechnicianDashboardHome() {
         {recentIncidents.length === 0 ? (
           <div className="card-body-center">
             <p className="card-desc" style={{ marginBottom: 0 }}>
-              Cuando tengas asignaciones apareceran aqui.
+              Cuando tengas asignaciones aparecerán aquí.
             </p>
           </div>
         ) : (
@@ -194,11 +252,7 @@ export default function TechnicianDashboardHome() {
                   {recentIncidents.map((incident) => (
                     <tr
                       key={incident.id}
-                      onClick={() =>
-                        router.push(
-                          `/dashboard/tecnico/incidente-detalle?id=${incident.id}`
-                        )
-                      }
+                      onClick={() => openIncident(incident.id)}
                       style={{
                         borderBottom: "1px solid var(--color-border-light)",
                         cursor: "pointer",
@@ -235,11 +289,7 @@ export default function TechnicianDashboardHome() {
                 <div
                   key={incident.id}
                   className="tech-incident-card"
-                  onClick={() =>
-                    router.push(
-                      `/dashboard/tecnico/incidente-detalle?id=${incident.id}`
-                    )
-                  }
+                  onClick={() => openIncident(incident.id)}
                 >
                   {/* Fila superior: ID + badge de estado */}
                   <div className="tech-incident-card-top">

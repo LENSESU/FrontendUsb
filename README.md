@@ -135,19 +135,51 @@ Si el mensaje no respeta este formato, el hook `commit-msg` bloqueará el commit
 
 ## Docker
 
-### Construir la imagen
+### Arranque estándar con backend local
+
+Desde la raíz de `BackendUsb`, levanta el backend:
 
 ```bash
-docker build -t frontend-usb .
+docker compose up -d --build
 ```
 
-### Ejecutar el contenedor
+Desde la raíz de `FrontendUsb`, reconstruye el frontend inyectando la URL del backend en tiempo de build:
 
 ```bash
-docker run -p 3000:3000 frontend-usb
+docker build --build-arg NEXT_PUBLIC_API_URL=http://localhost:8080 -t frontend-usb:dockerfix .
+```
+
+Levanta el contenedor del frontend:
+
+```bash
+docker run -d --name frontend-usb-web -p 3000:3000 frontend-usb:dockerfix
 ```
 
 La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+
+Si el puerto `3000` está ocupado, elimina el contenedor viejo y vuelve a levantar el frontend:
+
+```bash
+docker ps
+docker rm -f nombre_contenedor_viejo
+docker run -d --name frontend-usb-web -p 3000:3000 frontend-usb:dockerfix
+```
+
+Verificación rápida del backend:
+
+```bash
+curl -i http://127.0.0.1:8080/health
+curl -i -X POST http://localhost:8080/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"admin@usbcali.edu.co","password":"admin123"}'
+```
+
+### Diagnóstico rápido
+
+- Si Swagger o `curl` hacen login con `200`, pero el frontend muestra `Sin conexión`, revisa que la imagen del frontend no sea vieja y que haya sido construida con `NEXT_PUBLIC_API_URL`.
+- Si en Network aparece una petición a `localhost:3000/api/v1/...`, la URL base de la API quedó mal inyectada en el frontend.
+- Si abren el frontend en `0.0.0.0:3000` y falla CORS, usen `localhost:3000` o `127.0.0.1:3000`.
+- Si aparece `Not Found` en rutas de photos, esa ruta no está implementada actualmente en el backend.
+
+> En Next.js, las variables públicas `NEXT_PUBLIC_` se inyectan al compilar. En Docker no basta con cambiar `.env.local` si la imagen ya fue construida sin ese valor: hay que reconstruirla con `--build-arg`.
 
 ---
 
@@ -159,7 +191,7 @@ Crea un archivo `.env.local` en la raíz del proyecto antes de correr el proyect
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
-> El backend debe estar corriendo (en Docker según su README) para que las llamadas a la API funcionen.
+> El backend debe estar corriendo (en Docker según su README) para que las llamadas a la API funcionen. Para Docker, usa también el `--build-arg` del apartado anterior, porque esta variable se fija durante el build de Next.js.
 
 ---
 
