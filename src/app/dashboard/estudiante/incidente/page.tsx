@@ -12,6 +12,8 @@ import {
 } from "@/utils/auth";
 import LocationField from "@/components/LocationField";
 import IncidentResponseModal from "@/components/IncidentResponseModal";
+import { useOnboarding } from "@/utils/onBoardingEstudiante";
+import OnboardingTour from "@/components/OnBoardingTourEstudiante";
 
 type GpsCoordinates = { latitude: number; longitude: number } | null;
 
@@ -105,6 +107,16 @@ export default function EstudianteIncidentePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalIsError, setModalIsError] = useState(false);
+
+  const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding("onboarding_incident_form");
+
+  const INCIDENT_STEPS = [
+    { targetId: "incident-category", title: "Categoría", description: "Selecciona el tipo de problema: infraestructura, seguridad, tecnología, servicios u otro." },
+    { targetId: "incident-description", title: "Descripción", description: "Explica brevemente qué ocurrió. Mínimo 10 caracteres — más detalle significa una solución más rápida." },
+    { targetId: "onboarding-location", title: "Ubicación", description: "Indica la zona del campus donde ocurrió el problema. Puedes añadir detalles específicos o usar el GPS." },
+    { targetId: "onboarding-image", title: "Evidencia", description: "Adjunta una foto del problema si tienes una. Puedes subirla desde tu dispositivo o tomarla con la cámara." },
+    { targetId: "onboarding-submit", title: "¡Enviar!", description: "Cuando hayas completado los campos, pulsa aquí para registrar tu reporte. ¡Gracias por contribuir!" },
+  ];
 
   // ── Sesión ──
   useEffect(() => {
@@ -464,6 +476,9 @@ export default function EstudianteIncidentePage() {
 
   return (
     <>
+      {showOnboarding && (
+        <OnboardingTour steps={INCIDENT_STEPS} onDismiss={dismissOnboarding} />
+      )}
       <style>{`
         @media (min-width: 768px) {
           .incident-form-grid {
@@ -612,7 +627,7 @@ export default function EstudianteIncidentePage() {
                 </div>
 
                 {/* ── Ubicación — ocupa ancho completo ── */}
-                <div className="incident-form-full">
+                <div id="onboarding-location" className="incident-form-full">
                   <LocationField
                     zone={locationZone}
                     detail={locationDetail}
@@ -627,7 +642,7 @@ export default function EstudianteIncidentePage() {
                 </div>
 
                 {/* ── Imagen — ocupa ancho completo ── */}
-                <div className="field incident-form-full">
+                <div id="onboarding-image" className="field incident-form-full">
                   <label htmlFor="incident-image">
                     Imagen de evidencia{" "}
                     <span
@@ -901,6 +916,7 @@ export default function EstudianteIncidentePage() {
                     Cancelar
                   </button>
                   <button
+                    id="onboarding-submit"
                     type="submit"
                     className="btn-primary"
                     disabled={isSubmitting}
