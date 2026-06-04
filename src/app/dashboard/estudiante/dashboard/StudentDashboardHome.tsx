@@ -365,12 +365,24 @@ export default function StudentDashboardHome({
 
   const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding("onboarding_dashboard_estudiante");
 
+  const [isMobile, setIsMobile] = useState(false);
+
   const DASHBOARD_STEPS = [
     { targetId: "onboarding-stats", title: "Tu actividad", description: "Aquí ves un resumen rápido de cuántos incidentes y sugerencias has publicado en el campus." },
     { targetId: "onboarding-incidents", title: "Incidentes recientes", description: "Tus últimos reportes aparecen aquí. Haz clic en cualquier fila para ver el detalle y su estado." },
     { targetId: "onboarding-suggestions", title: "Sugerencias populares", description: "Vota por las ideas que más te importan o crea una nueva tocando '+ Nueva'." },
     { targetId: "onboarding-new-report", title: "Nuevo reporte", description: "¿Encontraste un problema en el campus? Usa este botón para reportarlo de inmediato." },
   ];
+
+  // Effect para saber el tipo de vista (solo sirve para una cosa lol)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // ── Fetch incidentes del estudiante ──
   useEffect(() => {
@@ -601,6 +613,7 @@ export default function StudentDashboardHome({
                 </p>
               </div>
               <Link
+                id={isMobile ? "onboarding-new-report" : undefined}
                 href="/dashboard/estudiante/incidente"
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-xl font-bold leading-none text-white shadow-sm no-underline transition hover:bg-[var(--color-primary-dark)]"
                 aria-label="Nuevo Reporte"
@@ -624,7 +637,7 @@ export default function StudentDashboardHome({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <Link
-              id="onboarding-new-report"
+              id={isMobile ? undefined : "onboarding-new-report"}
               href="/dashboard/estudiante/incidente"
               className="btn-primary min-w-[200px] text-center no-underline sm:!w-auto"
               aria-label="Nuevo Reporte"

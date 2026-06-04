@@ -21,7 +21,6 @@ type Rect = {
 };
 
 const PADDING = 8;
-const TOOLTIP_WIDTH = 300;
 const TOOLTIP_OFFSET = 16;
 
 export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps) {
@@ -33,6 +32,14 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
 
   const isLast = current === steps.length - 1;
   const step = steps[current];
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     setReady(false);
@@ -55,6 +62,8 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
 
         const viewportH = window.innerHeight;
         const viewportW = window.innerWidth;
+        const tooltipW = Math.min(300, viewportW - 32);
+
         const spaceBelow = viewportH - (r.bottom + PADDING);
         const spaceAbove = r.top - PADDING;
 
@@ -68,8 +77,8 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
         }
 
         let left = r.left;
-        if (left + TOOLTIP_WIDTH > viewportW - 16) {
-          left = viewportW - TOOLTIP_WIDTH - 16;
+        if (left + tooltipW > viewportW - 16) {
+          left = viewportW - tooltipW - 16;
         }
         if (left < 16) left = 16;
 
@@ -141,8 +150,8 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
             height: rect.height,
             zIndex: 9001,
             borderRadius: "10px",
-            border: "2px solid var(--color-primary, #f97316)",
-            boxShadow: "0 0 0 3px rgba(249,115,22,0.25)",
+            border: "2px solid var(--color-primary)",
+            boxShadow: "0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent)",
             pointerEvents: "none",
             transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -156,7 +165,7 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
             position: "fixed",
             top: tooltipPos.top,
             left: tooltipPos.left,
-            width: TOOLTIP_WIDTH,
+            width: `min(300px, calc(100vw - 32px))`,
             zIndex: 9002,
             background: "var(--color-bg-card, var(--color-bg))",
             borderRadius: "12px",
@@ -209,7 +218,7 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
               margin: "0 0 6px 0",
               fontSize: "15px",
               fontWeight: 700,
-              color: "var(--color-text-primary, #111)",
+              color: "var(--color-text-primary)",
               lineHeight: 1.4,
             }}
           >
@@ -222,7 +231,7 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
               margin: "0 0 18px 0",
               fontSize: "13px",
               lineHeight: 1.6,
-              color: "var(--color-text-secondary, #6b7280)",
+              color: "var(--color-text-secondary)",
             }}
           >
             {step.description}
@@ -273,7 +282,7 @@ export default function OnboardingTour({ steps, onDismiss }: OnboardingTourProps
               <button
                 onClick={handleNext}
                 style={{
-                  background: "var(--color-primary, #f97316)",
+                  background: "var(--color-primary)",
                   border: "none",
                   borderRadius: "8px",
                   padding: "8px 16px",
