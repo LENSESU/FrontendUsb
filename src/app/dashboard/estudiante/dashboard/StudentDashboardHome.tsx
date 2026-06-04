@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { IncidentStatusBadge } from "@/components/IncidentStatusBadge";
 import { IncidentStatus } from "@/utils/incidentStatus";
 import { useEffect, useState } from "react";
+import { useOnboarding } from "@/utils/onBoardingEstudiante";
+import OnboardingTour from "@/components/OnBoardingTourEstudiante";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -361,6 +363,15 @@ export default function StudentDashboardHome({
   // IDs whose initial vote status is still being fetched from GET /{id}/vote
   const [checkingVoteIds, setCheckingVoteIds] = useState<Set<string>>(new Set());
 
+  const { show: showOnboarding, dismiss: dismissOnboarding } = useOnboarding("onboarding_dashboard_estudiante");
+
+  const DASHBOARD_STEPS = [
+    { targetId: "onboarding-stats", title: "Tu actividad", description: "Aquí ves un resumen rápido de cuántos incidentes y sugerencias has publicado en el campus." },
+    { targetId: "onboarding-incidents", title: "Incidentes recientes", description: "Tus últimos reportes aparecen aquí. Haz clic en cualquier fila para ver el detalle y su estado." },
+    { targetId: "onboarding-suggestions", title: "Sugerencias populares", description: "Vota por las ideas que más te importan o crea una nueva tocando '+ Nueva'." },
+    { targetId: "onboarding-new-report", title: "Nuevo reporte", description: "¿Encontraste un problema en el campus? Usa este botón para reportarlo de inmediato." },
+  ];
+
   // ── Fetch incidentes del estudiante ──
   useEffect(() => {
     async function fetchIncidents() {
@@ -570,6 +581,9 @@ export default function StudentDashboardHome({
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-4 pt-0 sm:p-6 lg:px-8">
+      {showOnboarding && (
+        <OnboardingTour steps={DASHBOARD_STEPS} onDismiss={dismissOnboarding} />
+      )}
 
       {/* ── Header ── */}
       <header className="mb-6 sm:mb-8">
@@ -610,6 +624,7 @@ export default function StudentDashboardHome({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <Link
+              id="onboarding-new-report"
               href="/dashboard/estudiante/incidente"
               className="btn-primary min-w-[200px] text-center no-underline sm:!w-auto"
               aria-label="Nuevo Reporte"
@@ -621,7 +636,7 @@ export default function StudentDashboardHome({
       </header>
 
       {/* ── Stats ── */}
-      <section className="mb-6 sm:mb-8">
+      <section id="onboarding-stats" className="mb-6 sm:mb-8">
         <div className="grid grid-cols-2 items-stretch gap-2 sm:gap-4 lg:gap-6">
           {loadingIncidents ? (
             <SkeletonStatCard />
@@ -648,7 +663,7 @@ export default function StudentDashboardHome({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
 
         {/* Incidentes recientes */}
-        <section className="card min-h-[200px] lg:col-span-2">
+        <section id="onboarding-incidents" className="card min-h-[200px] lg:col-span-2">
           <div className="flex w-full min-w-0 flex-row items-center justify-between gap-3 border-b border-[var(--color-border-light)] px-4 py-3">
             <h2 className="min-w-0 flex-1 text-lg font-bold text-[var(--color-text-primary)] md:hidden">
               Recientes
@@ -773,7 +788,7 @@ export default function StudentDashboardHome({
         </section>
 
         {/* Sugerencias populares */}
-        <section className="card min-h-[200px] lg:col-span-1">
+        <section id="onboarding-suggestions" className="card min-h-[200px] lg:col-span-1">
           <div className="flex items-center justify-between border-b border-[var(--color-border-light)] px-4 py-3">
             <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
               Sugerencias Populares
